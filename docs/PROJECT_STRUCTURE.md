@@ -8,6 +8,7 @@ semantic-bookmark/
 │   ├── background/
 │   │   ├── index.ts                    # Service worker entry point
 │   │   ├── bookmarkListener.ts         # Bookmark change listeners
+│   │   ├── crawlQueue.ts               # Background crawl queue
 │   │   ├── indexingQueue.ts            # Background indexing queue
 │   │   └── messageHandler.ts           # Message passing between components
 │   │
@@ -28,6 +29,9 @@ semantic-bookmark/
 │   │   ├── searchService.ts            # Search logic and ranking
 │   │   ├── indexingService.ts          # Bookmark indexing
 │   │   ├── embeddingService.ts         # Embedding generation coordination
+│   │   ├── crawlerService.ts           # Content crawling and fetching
+│   │   ├── contentService.ts           # Content extraction and processing
+│   │   ├── tagService.ts               # Tag management
 │   │   ├── agentService.ts             # Agent mode (query enhancement)
 │   │   ├── storageService.ts           # Storage abstraction layer
 │   │   └── bookmarkService.ts          # Bookmark API wrapper
@@ -37,8 +41,11 @@ semantic-bookmark/
 │   │   ├── migrations.ts               # Schema migrations
 │   │   ├── repositories/
 │   │   │   ├── BookmarkRepository.ts
+│   │   │   ├── ContentRepository.ts
 │   │   │   ├── EmbeddingRepository.ts
 │   │   │   ├── ProviderRepository.ts
+│   │   │   ├── TagRepository.ts
+│   │   │   ├── RelatedPageRepository.ts
 │   │   │   └── SettingsRepository.ts
 │   │   └── models.ts                   # TypeScript interfaces
 │   │
@@ -49,10 +56,13 @@ semantic-bookmark/
 │   │   │   ├── App.ts                  # Main side panel component
 │   │   │   ├── components/
 │   │   │   │   ├── SearchInput.ts
+│   │   │   │   ├── ProviderSelector.ts # Provider selection dropdown
+│   │   │   │   ├── TagFilter.ts        # Tag filtering component
 │   │   │   │   ├── SearchResults.ts
 │   │   │   │   ├── ResultItem.ts
+│   │   │   │   ├── TagBadge.ts         # Tag display component
 │   │   │   │   ├── ModeToggle.ts       # Normal/Agent mode toggle
-│   │   │   │   └── StatusBadge.ts      # Indexing status
+│   │   │   │   └── StatusBadge.ts      # Indexing/crawling status
 │   │   │   └── styles/
 │   │   │       ├── main.css
 │   │   │       └── variables.css
@@ -62,8 +72,10 @@ semantic-bookmark/
 │   │   │   ├── index.ts
 │   │   │   ├── Settings.ts             # Settings page component
 │   │   │   ├── components/
-│   │   │   │   ├── ProviderSelector.ts
+│   │   │   │   ├── ProviderManager.ts   # Multi-provider management
 │   │   │   │   ├── APIConfigForm.ts
+│   │   │   │   ├── CrawlSettings.ts     # Crawling configuration
+│   │   │   │   ├── TagManager.ts        # Tag management UI
 │   │   │   │   ├── IndexingControls.ts
 │   │   │   │   └── PrivacySettings.ts
 │   │   │   └── styles/
@@ -77,6 +89,11 @@ semantic-bookmark/
 │   │   ├── vector.ts                   # Vector operations (cosine similarity)
 │   │   ├── text.ts                     # Text processing utilities
 │   │   ├── crypto.ts                   # Encryption for API keys
+│   │   ├── hash.ts                     # Content hashing utilities
+│   │   ├── url.ts                      # URL parsing and same-origin detection
+│   │   ├── readability.ts              # Readability wrapper for content extraction
+│   │   ├── robotsParser.ts             # Robots.txt parsing
+│   │   ├── rateLimit.ts                # Rate limiting for crawling
 │   │   ├── logger.ts                   # Logging utility
 │   │   ├── retry.ts                    # Retry logic with backoff
 │   │   ├── batch.ts                    # Batch processing utilities
@@ -327,7 +344,11 @@ npm run package:firefox     # Create firefox.zip
     "webextension-polyfill": "^0.12.0",
     "dexie": "^4.0.0",
     "@tensorflow/tfjs": "^4.20.0",
-    "@tensorflow-models/universal-sentence-encoder": "^1.3.3"
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3",
+    "@mozilla/readability": "^0.5.0",
+    "jsdom": "^24.0.0",
+    "robots-parser": "^3.0.0",
+    "ml-distance": "^4.0.1"
   }
 }
 ```
