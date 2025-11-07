@@ -159,14 +159,14 @@ jobs:
 
       # Upload artifacts (for backup)
       - name: Upload Chrome artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semantic-bookmark-chrome-${{ github.ref_name }}
           path: semantic-bookmark-chrome-${{ github.ref_name }}.zip
           retention-days: 90
 
       - name: Upload Firefox artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semantic-bookmark-firefox-${{ github.ref_name }}
           path: semantic-bookmark-firefox-${{ github.ref_name }}.zip
