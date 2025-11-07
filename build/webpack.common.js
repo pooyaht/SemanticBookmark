@@ -6,6 +6,7 @@ module.exports = {
   entry: {
     background: path.resolve(__dirname, '../src/background/index.ts'),
     sidepanel: path.resolve(__dirname, '../src/ui/sidepanel/index.ts'),
+    popup: path.resolve(__dirname, '../src/ui/popup/index.ts'),
   },
   output: {
     path: path.resolve(__dirname, '../dist'),
@@ -36,6 +37,11 @@ module.exports = {
       template: path.resolve(__dirname, '../src/ui/sidepanel/index.html'),
       filename: 'sidepanel.html',
       chunks: ['sidepanel'],
+    }),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, '../src/ui/popup/index.html'),
+      filename: 'popup.html',
+      chunks: ['popup'],
     }),
     new CopyWebpackPlugin({
       patterns: [

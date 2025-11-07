@@ -5,12 +5,11 @@
   "description": "Search your bookmarks semantically using AI-powered embeddings",
   "permissions": [
     "bookmarks",
-    "storage"
+    "storage",
+    "sidePanel"
   ],
   "action": {
-    "default_title": "Semantic Bookmark Search"
-  },
-  "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_title": "Semantic Bookmark Search",
+    "default_popup": "popup.html"
   }
 }
