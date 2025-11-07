@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import { Layout } from '../components/Layout';
 import { MergeTagModal } from '../components/MergeTagModal';
@@ -22,6 +22,16 @@ export const TagsPage: React.FC = () => {
   const [mergingTag, setMergingTag] = useState<Tag | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<Set<TagSource>>(
+    new Set([
+      TagSource.DEFAULT,
+      TagSource.USER,
+      TagSource.FOLDER,
+      TagSource.LLM,
+    ])
+  );
+
   const [addFormData, setAddFormData] = useState({ name: '', description: '' });
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -42,6 +52,28 @@ export const TagsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filteredTags = useMemo(() => {
+    return tags.filter((tag) => {
+      const matchesSearch =
+        searchTerm.trim() === '' ||
+        tag.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategories.has(tag.source);
+      return matchesSearch && matchesCategory;
+    });
+  }, [tags, searchTerm, selectedCategories]);
+
+  const toggleCategory = (category: TagSource) => {
+    setSelectedCategories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+      } else {
+        newSet.add(category);
+      }
+      return newSet;
+    });
   };
 
   const handleAddTag = async (e: React.FormEvent) => {
@@ -259,6 +291,47 @@ export const TagsPage: React.FC = () => {
         </div>
       </div>
 
+      <div className="search-container">
+        <div className="search-input-wrapper">
+          <svg className="search-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+          </svg>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search tags by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              className="clear-search-btn"
+              onClick={() => setSearchTerm('')}
+              title="Clear search"
+            >
+              <svg fill="currentColor" viewBox="0 0 24 24">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="category-filters">
+          {Object.values(TagSource).map((source) => (
+            <label key={source} className="category-filter-item">
+              <input
+                type="checkbox"
+                checked={selectedCategories.has(source)}
+                onChange={() => toggleCategory(source)}
+              />
+              <span className={`category-label ${source.toLowerCase()}`}>
+                {source}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <div className="tags-list">
         {loading && (
           <div className="empty-state">
@@ -289,10 +362,22 @@ export const TagsPage: React.FC = () => {
           </div>
         )}
 
+        {!loading && !error && tags.length > 0 && filteredTags.length === 0 && (
+          <div className="empty-state">
+            <svg fill="currentColor" viewBox="0 0 24 24">
+              <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+            </svg>
+            <p>No matching tags found</p>
+            <p style={{ fontSize: '12px', color: '#999' }}>
+              Try adjusting your search or filters
+            </p>
+          </div>
+        )}
+
         {!loading &&
           !error &&
-          tags.length > 0 &&
-          tags.map((tag) => renderTag(tag))}
+          filteredTags.length > 0 &&
+          filteredTags.map((tag) => renderTag(tag))}
       </div>
 
       <Modal
