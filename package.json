@@ -63,7 +63,7 @@
     "@types/firefox-webext-browser": "^143.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsdom": "^27.0.0",
-    "@types/node": "^22.9.0",
+    "@types/node": "^24.10.0",
     "@types/webextension-polyfill": "^0.12.1",
     "copy-webpack-plugin": "^13.0.1",
     "cross-env": "^7.0.3",
