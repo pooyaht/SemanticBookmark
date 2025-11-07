@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Tags</title>
+  <style>
+    body {
+      width: 400px;
+      min-height: 300px;
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-size: 14px;
+      color: #333;
+      padding-bottom: 72px;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      color: #4a90e2;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #4a90e2;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #357abd;
+    }
+
+    .btn-secondary {
+      background-color: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background-color: #e0e0e0;
+    }
+
+    .btn-danger {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #c0392b;
+    }
+
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+
+    .tags-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .tag-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .tag-item:hover {
+      background-color: #f9f9f9;
+      border-color: #d0d0d0;
+    }
+
+    .tag-info {
+      flex: 1;
+    }
+
+    .tag-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .tag-badge.default {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    .tag-badge.user {
+      background-color: #f3e5f5;
+      color: #7b1fa2;
+    }
+
+    .tag-badge.folder {
+      background-color: #fff3e0;
+      color: #f57c00;
+    }
+
+    .tag-badge.llm {
+      background-color: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .tag-description {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .tag-meta {
+      font-size: 11px;
+      color: #999;
+    }
+
+    .tag-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-btn:hover {
+      background-color: #f5f5f5;
+    }
+
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .icon-btn.danger:hover {
+      background-color: #ffebee;
+      color: #e74c3c;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      width: 90%;
+      max-width: 360px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .modal-header {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #555;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .form-input:focus {
+      border-color: #4a90e2;
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .footer-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 8px 16px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+      text-decoration: none;
+      color: #666;
+    }
+
+    .footer-nav-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .footer-nav-item.active {
+      color: #4a90e2;
+    }
+
+    .footer-nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .footer-nav-item span {
+      font-size: 11px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Manage Tags</h1>
+    <div>
+      <button id="restore-defaults-btn" class="btn btn-secondary btn-small">
+        Restore Defaults
+      </button>
+      <button id="add-tag-btn" class="btn btn-primary btn-small">
+        Add Tag
+      </button>
+    </div>
+  </div>
+
+  <div id="tags-list" class="tags-list">
+    <div class="empty-state">
+      <svg fill="currentColor" viewBox="0 0 24 24">
+        <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+      </svg>
+      <p>Loading tags...</p>
+    </div>
+  </div>
+
+  <div id="add-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Add New Tag</div>
+      <form id="add-tag-form">
+        <div class="form-group">
+          <label class="form-label" for="tag-name">Tag Name</label>
+          <input
+            type="text"
+            id="tag-name"
+            class="form-input"
+            placeholder="Enter tag name"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="tag-description">Description (optional)</label>
+          <textarea
+            id="tag-description"
+            class="form-input form-textarea"
+            placeholder="Enter description"
+          ></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-add-btn" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Add Tag
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Edit Tag</div>
+      <form id="edit-tag-form">
+        <input type="hidden" id="edit-tag-id" />
+        <div class="form-group">
+          <label class="form-label" for="edit-tag-name">Tag Name</label>
+          <input
+            type="text"
+            id="edit-tag-name"
+            class="form-input"
+            placeholder="Enter tag name"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-tag-description">Description (optional)</label>
+          <textarea
+            id="edit-tag-description"
+            class="form-input form-textarea"
+            placeholder="Enter description"
+          ></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-edit-btn" class="btn btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="index.html" class="footer-nav-item">
+      <svg fill="currentColor" viewBox="0 0 24 24">
+        <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      </svg>
+      <span>Search</span>
+    </a>
+    <a href="tags.html" class="footer-nav-item active">
+      <svg fill="currentColor" viewBox="0 0 24 24">
+        <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z"/>
+      </svg>
+      <span>Tags</span>
+    </a>
+  </div>
+
+  <script src="tags.js"></script>
+</body>
+</html>
