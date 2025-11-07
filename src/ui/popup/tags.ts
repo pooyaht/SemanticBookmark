@@ -24,6 +24,7 @@ const cancelEditBtn = document.getElementById(
 ) as HTMLButtonElement;
 
 let currentEditingTagId: string | null = null;
+let isLoading = false;
 
 async function loadTags() {
   try {
@@ -125,6 +126,10 @@ function hideEditModal() {
 async function handleAddTag(event: Event) {
   event.preventDefault();
 
+  if (isLoading) {
+    return;
+  }
+
   const nameInput = document.getElementById('tag-name') as HTMLInputElement;
   const descriptionInput = document.getElementById(
     'tag-description'
@@ -137,12 +142,16 @@ async function handleAddTag(event: Event) {
     return;
   }
 
+  isLoading = true;
+
   try {
     await tagService.createTag(name, TagSource.USER, description || undefined);
     hideAddModal();
     await loadTags();
   } catch (error) {
     alert(error instanceof Error ? error.message : 'Failed to create tag');
+  } finally {
+    isLoading = false;
   }
 }
 
@@ -167,7 +176,7 @@ function handleEditTag(tag: Tag) {
 async function handleSaveEdit(event: Event) {
   event.preventDefault();
 
-  if (!currentEditingTagId) {
+  if (isLoading || !currentEditingTagId) {
     return;
   }
 
@@ -185,6 +194,8 @@ async function handleSaveEdit(event: Event) {
     return;
   }
 
+  isLoading = true;
+
   try {
     await tagService.renameTag(currentEditingTagId, name);
     await tagService.updateTagDescription(
@@ -195,10 +206,16 @@ async function handleSaveEdit(event: Event) {
     await loadTags();
   } catch (error) {
     alert(error instanceof Error ? error.message : 'Failed to update tag');
+  } finally {
+    isLoading = false;
   }
 }
 
 async function handleDeleteTag(tag: Tag) {
+  if (isLoading) {
+    return;
+  }
+
   if (tag.source === TagSource.DEFAULT) {
     alert('Cannot delete default tags');
     return;
@@ -213,15 +230,23 @@ async function handleDeleteTag(tag: Tag) {
     return;
   }
 
+  isLoading = true;
+
   try {
     await tagService.deleteTag(tag.id);
     await loadTags();
   } catch (error) {
     alert(error instanceof Error ? error.message : 'Failed to delete tag');
+  } finally {
+    isLoading = false;
   }
 }
 
 async function handleRestoreDefaults() {
+  if (isLoading) {
+    return;
+  }
+
   if (
     !confirm(
       'This will restore all default tags. Existing default tags will not be affected.\n\nContinue?'
@@ -230,6 +255,10 @@ async function handleRestoreDefaults() {
     return;
   }
 
+  isLoading = true;
+  restoreDefaultsBtn.disabled = true;
+  addTagBtn.disabled = true;
+
   try {
     await tagService.restoreDefaultTags();
     await loadTags();
@@ -237,6 +266,10 @@ async function handleRestoreDefaults() {
     alert(
       error instanceof Error ? error.message : 'Failed to restore default tags'
     );
+  } finally {
+    isLoading = false;
+    restoreDefaultsBtn.disabled = false;
+    addTagBtn.disabled = false;
   }
 }
 

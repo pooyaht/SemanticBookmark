@@ -481,6 +481,33 @@ describe('TagService', () => {
       expect(restoredTag).toBeDefined();
       expect(restoredTag?.source).toBe(TagSource.DEFAULT);
     });
+
+    it('should not delete user tags when restoring defaults', async () => {
+      const userTag1 = await tagService.createTag(
+        'my-custom-tag',
+        TagSource.USER
+      );
+      const userTag2 = await tagService.createTag(
+        'another-tag',
+        TagSource.USER
+      );
+      const folderTag = await tagService.createTag('work', TagSource.FOLDER);
+
+      await tagService.restoreDefaultTags();
+
+      const allTags = await tagService.getAllTags();
+      const userTags = allTags.filter((t) => t.source === TagSource.USER);
+      const folderTags = allTags.filter((t) => t.source === TagSource.FOLDER);
+      const defaultTags = allTags.filter((t) => t.source === TagSource.DEFAULT);
+
+      expect(defaultTags).toHaveLength(DEFAULT_TAGS.length);
+      expect(userTags).toHaveLength(2);
+      expect(folderTags).toHaveLength(1);
+
+      expect(userTags.map((t) => t.id)).toContain(userTag1.id);
+      expect(userTags.map((t) => t.id)).toContain(userTag2.id);
+      expect(folderTags.map((t) => t.id)).toContain(folderTag.id);
+    });
   });
 
   describe('bookmarks without tags', () => {
