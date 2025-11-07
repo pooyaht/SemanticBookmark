@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Semantic Bookmark Search",
+  "version": "0.1.0",
+  "description": "Search your bookmarks semantically using AI-powered embeddings",
+  "permissions": [
+    "bookmarks",
+    "storage"
+  ],
+  "action": {
+    "default_title": "Semantic Bookmark Search"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
