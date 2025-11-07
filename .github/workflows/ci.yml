@@ -84,6 +84,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -104,7 +108,7 @@ jobs:
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
-          name: semantic-bookmark-chrome
+          name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
           path: dist/chrome/
           retention-days: 30
 
@@ -117,6 +121,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -138,7 +146,7 @@ jobs:
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@v4
         with:
-          name: semantic-bookmark-firefox
+          name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
           path: dist/firefox/
           retention-days: 30
 
@@ -150,42 +158,52 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
+
       - name: Download Chrome artifact
         uses: actions/download-artifact@v4
         with:
-          name: semantic-bookmark-chrome
+          name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
         continue-on-error: true
 
       - name: Download Firefox artifact
         uses: actions/download-artifact@v4
         with:
-          name: semantic-bookmark-firefox
+          name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
         continue-on-error: true
 
       - name: Get file sizes
         run: |
+          COMMIT_HASH="${{ steps.commit.outputs.short_sha }}"
           echo "## Build Artifacts Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`$COMMIT_HASH\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Browser | Artifact | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|----------|--------|" >> $GITHUB_STEP_SUMMARY
 
           if [ -f "manifest.json" ]; then
-            echo "| Chrome | semantic-bookmark-chrome.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
+            echo "| Chrome | semantic-bookmark-chrome_${COMMIT_HASH}.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Chrome | semantic-bookmark-chrome.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            echo "| Chrome | semantic-bookmark-chrome_${COMMIT_HASH}.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
           cd .. 2>/dev/null || true
-          if [ -f "semantic-bookmark-firefox/manifest.json" ]; then
-            echo "| Firefox | semantic-bookmark-firefox.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
+          if [ -f "semantic-bookmark-firefox_${COMMIT_HASH}/manifest.json" ]; then
+            echo "| Firefox | semantic-bookmark-firefox_${COMMIT_HASH}.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Firefox | semantic-bookmark-firefox.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            echo "| Firefox | semantic-bookmark-firefox_${COMMIT_HASH}.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "1. Scroll to the **Artifacts** section at the top of this workflow run" >> $GITHUB_STEP_SUMMARY
-          echo "2. Download \`semantic-bookmark-chrome.zip\` or \`semantic-bookmark-firefox.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Download \`semantic-bookmark-chrome_${COMMIT_HASH}.zip\` or \`semantic-bookmark-firefox_${COMMIT_HASH}.zip\`" >> $GITHUB_STEP_SUMMARY
           echo "3. Extract the downloaded zip file" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Installation" >> $GITHUB_STEP_SUMMARY
