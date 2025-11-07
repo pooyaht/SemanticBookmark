@@ -50,10 +50,10 @@ semantic-bookmark/
 │   │   └── models.ts                   # TypeScript interfaces
 │   │
 │   ├── ui/
-│   │   ├── sidepanel/
+│   │   ├── popup/
 │   │   │   ├── index.html
 │   │   │   ├── index.ts
-│   │   │   ├── App.ts                  # Main side panel component
+│   │   │   ├── App.ts                  # Main popup component
 │   │   │   ├── components/
 │   │   │   │   ├── SearchInput.ts
 │   │   │   │   ├── ProviderSelector.ts # Provider selection dropdown
@@ -67,23 +67,19 @@ semantic-bookmark/
 │   │   │       ├── main.css
 │   │   │       └── variables.css
 │   │   │
-│   │   ├── settings/
-│   │   │   ├── index.html
-│   │   │   ├── index.ts
-│   │   │   ├── Settings.ts             # Settings page component
-│   │   │   ├── components/
-│   │   │   │   ├── ProviderManager.ts   # Multi-provider management
-│   │   │   │   ├── APIConfigForm.ts
-│   │   │   │   ├── CrawlSettings.ts     # Crawling configuration
-│   │   │   │   ├── TagManager.ts        # Tag management UI
-│   │   │   │   ├── IndexingControls.ts
-│   │   │   │   └── PrivacySettings.ts
-│   │   │   └── styles/
-│   │   │       └── settings.css
-│   │   │
-│   │   └── popup/
-│   │       ├── index.html              # Fallback popup (future)
-│   │       └── index.ts
+│   │   └── settings/
+│   │       ├── index.html
+│   │       ├── index.ts
+│   │       ├── Settings.ts             # Settings page component
+│   │       ├── components/
+│   │       │   ├── ProviderManager.ts   # Multi-provider management
+│   │       │   ├── APIConfigForm.ts
+│   │       │   ├── CrawlSettings.ts     # Crawling configuration
+│   │       │   ├── TagManager.ts        # Tag management UI
+│   │       │   ├── IndexingControls.ts
+│   │       │   └── PrivacySettings.ts
+│   │       └── styles/
+│   │           └── settings.css
 │   │
 │   ├── utils/
 │   │   ├── vector.ts                   # Vector operations (cosine similarity)
@@ -179,8 +175,8 @@ semantic-bookmark/
    - Lifecycle management
    - Bookmark change listeners
 
-2. **ui/sidepanel/index.ts**
-   - Side panel UI initialization
+2. **ui/popup/index.ts**
+   - Popup UI initialization
    - Event listeners
    - Communication with background
 
@@ -192,32 +188,46 @@ semantic-bookmark/
 ### Core Services
 
 1. **searchService.ts**
+
    ```typescript
    class SearchService {
-     async search(query: string, options?: SearchOptions): Promise<SearchResult[]>
-     async agentSearch(query: string): Promise<SearchResult[]>
-     private computeSimilarity(vector1: Float32Array, vector2: Float32Array): number
-     private rankResults(results: SearchResult[]): SearchResult[]
+     async search(
+       query: string,
+       options?: SearchOptions
+     ): Promise<SearchResult[]>;
+     async agentSearch(query: string): Promise<SearchResult[]>;
+     private computeSimilarity(
+       vector1: Float32Array,
+       vector2: Float32Array
+     ): number;
+     private rankResults(results: SearchResult[]): SearchResult[];
    }
    ```
 
 2. **indexingService.ts**
+
    ```typescript
    class IndexingService {
-     async indexAll(providerId: string): Promise<void>
-     async indexBookmark(bookmarkId: string): Promise<void>
-     async reindexWithProvider(providerId: string): Promise<void>
-     async getIndexingStatus(): Promise<IndexingStatus>
+     async indexAll(providerId: string): Promise<void>;
+     async indexBookmark(bookmarkId: string): Promise<void>;
+     async reindexWithProvider(providerId: string): Promise<void>;
+     async getIndexingStatus(): Promise<IndexingStatus>;
    }
    ```
 
 3. **embeddingService.ts**
    ```typescript
    class EmbeddingService {
-     async generateEmbedding(text: string, providerId: string): Promise<Float32Array>
-     async generateBatch(texts: string[], providerId: string): Promise<Float32Array[]>
-     async getActiveProvider(): Promise<EmbeddingProvider>
-     async switchProvider(providerId: string): Promise<void>
+     async generateEmbedding(
+       text: string,
+       providerId: string
+     ): Promise<Float32Array>;
+     async generateBatch(
+       texts: string[],
+       providerId: string
+     ): Promise<Float32Array[]>;
+     async getActiveProvider(): Promise<EmbeddingProvider>;
+     async switchProvider(providerId: string): Promise<void>;
    }
    ```
 
@@ -246,11 +256,12 @@ semantic-bookmark/
 ### Webpack Configuration
 
 **webpack.common.js**
+
 ```javascript
 module.exports = {
   entry: {
     background: './src/background/index.ts',
-    sidepanel: './src/ui/sidepanel/index.ts',
+    popup: './src/ui/popup/index.ts',
     settings: './src/ui/settings/index.ts',
   },
   module: {
@@ -269,6 +280,7 @@ module.exports = {
 ```
 
 **manifest.js** - Manifest generation
+
 ```javascript
 const base = require('../manifests/base.json');
 const chrome = require('../manifests/chrome.json');
@@ -305,12 +317,14 @@ function generateManifest(browser) {
 ## Development Workflow
 
 ### 1. Initial Setup
+
 ```bash
 npm install
 npm run build:chrome  # or build:firefox
 ```
 
 ### 2. Development
+
 ```bash
 # Chrome
 npm run dev:chrome
@@ -322,6 +336,7 @@ npm run dev:firefox
 ```
 
 ### 3. Testing
+
 ```bash
 npm test                    # Run all tests
 npm run test:watch          # Watch mode
@@ -329,6 +344,7 @@ npm run lint                # Check code quality
 ```
 
 ### 4. Production Build
+
 ```bash
 npm run build:all           # Build both browsers
 npm run package:chrome      # Create chrome.zip
@@ -338,6 +354,7 @@ npm run package:firefox     # Create firefox.zip
 ## Dependencies
 
 ### Core Dependencies
+
 ```json
 {
   "dependencies": {
@@ -354,6 +371,7 @@ npm run package:firefox     # Create firefox.zip
 ```
 
 ### Dev Dependencies
+
 ```json
 {
   "devDependencies": {
@@ -379,6 +397,7 @@ npm run package:firefox     # Create firefox.zip
 ## Configuration Files
 
 ### tsconfig.json
+
 ```json
 {
   "compilerOptions": {
@@ -402,13 +421,11 @@ npm run package:firefox     # Create firefox.zip
 ```
 
 ### .eslintrc.js
+
 ```javascript
 module.exports = {
   parser: '@typescript-eslint/parser',
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-  ],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-function-return-type': 'off',
@@ -419,20 +436,15 @@ module.exports = {
 ## Manifest Structure
 
 ### base.json (Common)
+
 ```json
 {
   "manifest_version": 3,
   "name": "Semantic Bookmark Search",
   "version": "0.1.0",
   "description": "Search bookmarks semantically using AI",
-  "permissions": [
-    "bookmarks",
-    "storage",
-    "sidePanel"
-  ],
-  "host_permissions": [
-    "https://*/*"
-  ],
+  "permissions": ["bookmarks", "storage"],
+  "host_permissions": ["https://*/*"],
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -440,16 +452,15 @@ module.exports = {
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Semantic Bookmark Search"
-  },
-  "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_title": "Semantic Bookmark Search",
+    "default_popup": "popup.html"
   },
   "options_page": "settings.html"
 }
 ```
 
 ### chrome.json (Chrome-specific)
+
 ```json
 {
   "background": {
@@ -463,6 +474,7 @@ module.exports = {
 ```
 
 ### firefox.json (Firefox-specific)
+
 ```json
 {
   "background": {
@@ -484,6 +496,7 @@ module.exports = {
 ## Message Protocol
 
 ### Message Types
+
 ```typescript
 // Background ↔ UI communication
 enum MessageType {
@@ -507,6 +520,7 @@ interface Message {
 ## Next Steps
 
 With this structure in mind, we can:
+
 1. ✅ Requirements documented (REQUIREMENTS.md)
 2. ✅ Architecture designed (both files)
 3. ✅ Project structure planned (this file)

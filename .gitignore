@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock
+pnpm-debug.log*
+# Keep pnpm-lock.yaml for reproducible builds
+# pnpm-lock.yaml
+
+# Build outputs
+dist/
+*.zip
+*.crx
+*.xpi
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Cache
+.cache/
+.eslintcache
+.node_repl_history
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Chrome extension specific
+*.pem
+key.pem
+
+# Production
+semantic-bookmark-*.zip
+checksums.txt

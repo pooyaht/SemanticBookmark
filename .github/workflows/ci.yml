@@ -1,0 +1,222 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'  # Run on all branches (trunk-based development)
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  # Job 1: Lint and Type Check
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        run: pnpm run lint
+        continue-on-error: false
+
+      - name: Run TypeScript type check
+        run: pnpm exec tsc --noEmit
+        continue-on-error: false
+
+  # Job 2: Run Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm test -- --coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  # Job 3: Build Chrome Extension
+  build-chrome:
+    name: Build Chrome Extension
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Chrome extension
+        run: pnpm run build:chrome
+        env:
+          NODE_ENV: production
+
+      - name: Upload Chrome artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
+          path: dist/chrome/
+          retention-days: 30
+
+  # Job 4: Build Firefox Extension
+  build-firefox:
+    name: Build Firefox Extension
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Firefox extension
+        run: pnpm run build:firefox
+        env:
+          NODE_ENV: production
+
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
+          path: dist/firefox/
+          retention-days: 30
+
+  # Job 5: Build Summary
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-chrome, build-firefox]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get short commit hash
+        id: commit
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Download Chrome artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
+        continue-on-error: true
+
+      - name: Download Firefox artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
+        continue-on-error: true
+
+      - name: Get file sizes
+        run: |
+          COMMIT_HASH="${{ steps.commit.outputs.short_sha }}"
+          echo "## Build Artifacts Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`$COMMIT_HASH\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | Artifact | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "manifest.json" ]; then
+            echo "| Chrome | semantic-bookmark-chrome_${COMMIT_HASH}.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Chrome | semantic-bookmark-chrome_${COMMIT_HASH}.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          cd .. 2>/dev/null || true
+          if [ -f "semantic-bookmark-firefox_${COMMIT_HASH}/manifest.json" ]; then
+            echo "| Firefox | semantic-bookmark-firefox_${COMMIT_HASH}.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Firefox | semantic-bookmark-firefox_${COMMIT_HASH}.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "1. Scroll to the **Artifacts** section at the top of this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. Download \`semantic-bookmark-chrome_${COMMIT_HASH}.zip\` or \`semantic-bookmark-firefox_${COMMIT_HASH}.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Extract the downloaded zip file" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Installation" >> $GITHUB_STEP_SUMMARY
+          echo "**Chrome:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to \`chrome://extensions/\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Enable 'Developer mode' (top-right)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Click 'Load unpacked'" >> $GITHUB_STEP_SUMMARY
+          echo "4. Select the extracted folder" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Firefox:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to \`about:debugging#/runtime/this-firefox\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click 'Load Temporary Add-on...'" >> $GITHUB_STEP_SUMMARY
+          echo "3. Select any file from the extracted folder" >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary complete
+        run: echo "Build summary generated successfully"
