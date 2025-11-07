@@ -106,7 +106,7 @@ jobs:
           NODE_ENV: production
 
       - name: Upload Chrome artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
           path: dist/chrome/
@@ -144,7 +144,7 @@ jobs:
           NODE_ENV: production
 
       - name: Upload Firefox artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
           path: dist/firefox/
