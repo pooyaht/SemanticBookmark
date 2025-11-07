@@ -45,6 +45,28 @@ global.chrome = {
 // Mock browser (Firefox) API - point to chrome mock
 global.browser = global.chrome as any;
 
+// Polyfill structuredClone for Node.js < 17
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (obj: any) => {
+    if (obj === null || typeof obj !== 'object') {
+      return obj;
+    }
+    if (obj instanceof Date) {
+      return new Date(obj.getTime());
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => global.structuredClone(item));
+    }
+    const cloned: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        cloned[key] = global.structuredClone(obj[key]);
+      }
+    }
+    return cloned;
+  };
+}
+
 // Mock IndexedDB (used by Dexie)
 import 'fake-indexeddb/auto';
 

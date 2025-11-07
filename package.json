@@ -95,8 +95,11 @@
   },
   "packageManager": "pnpm@9.12.3",
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "src/**/*.{ts,tsx}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "tests/**/*.{ts,tsx}": [
       "prettier --write"
     ],
     "*.{css,json,md}": [

@@ -10,6 +10,7 @@ export default {
   entry: {
     background: path.resolve(__dirname, '../src/background/index.ts'),
     popup: path.resolve(__dirname, '../src/ui/popup/index.ts'),
+    tags: path.resolve(__dirname, '../src/ui/popup/tags.ts'),
   },
   output: {
     path: path.resolve(__dirname, '../dist'),
@@ -40,6 +41,11 @@ export default {
       template: path.resolve(__dirname, '../src/ui/popup/index.html'),
       filename: 'popup.html',
       chunks: ['popup'],
+    }),
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, '../src/ui/popup/tags.html'),
+      filename: 'tags.html',
+      chunks: ['tags'],
     }),
     new CopyWebpackPlugin({
       patterns: [
