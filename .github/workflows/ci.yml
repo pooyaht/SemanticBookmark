@@ -1,0 +1,211 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'  # Run on all branches (trunk-based development)
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  # Job 1: Lint and Type Check
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Run TypeScript type check
+        run: npx tsc --noEmit
+        continue-on-error: false
+
+  # Job 2: Run Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  # Job 3: Build Chrome Extension
+  build-chrome:
+    name: Build Chrome Extension
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Chrome extension
+        run: npm run build:chrome
+        env:
+          NODE_ENV: production
+
+      - name: Package Chrome extension
+        run: |
+          cd dist/chrome
+          zip -r ../../semantic-bookmark-chrome.zip .
+          cd ../..
+
+      - name: Upload Chrome artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-chrome
+          path: semantic-bookmark-chrome.zip
+          retention-days: 30
+          compression-level: 0  # Already zipped
+
+      - name: Upload Chrome dist folder (unzipped)
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-chrome-dist
+          path: dist/chrome/
+          retention-days: 7
+
+  # Job 4: Build Firefox Extension
+  build-firefox:
+    name: Build Firefox Extension
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Firefox extension
+        run: npm run build:firefox
+        env:
+          NODE_ENV: production
+
+      - name: Package Firefox extension
+        run: |
+          cd dist/firefox
+          zip -r ../../semantic-bookmark-firefox.zip .
+          cd ../..
+
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-firefox
+          path: semantic-bookmark-firefox.zip
+          retention-days: 30
+          compression-level: 0  # Already zipped
+
+      - name: Upload Firefox dist folder (unzipped)
+        uses: actions/upload-artifact@v4
+        with:
+          name: semantic-bookmark-firefox-dist
+          path: dist/firefox/
+          retention-days: 7
+
+  # Job 5: Build Summary
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-chrome, build-firefox]
+    if: always()
+
+    steps:
+      - name: Download Chrome artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semantic-bookmark-chrome
+        continue-on-error: true
+
+      - name: Download Firefox artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: semantic-bookmark-firefox
+        continue-on-error: true
+
+      - name: Get file sizes
+        run: |
+          echo "## Build Artifacts Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "semantic-bookmark-chrome.zip" ]; then
+            chrome_size=$(du -h semantic-bookmark-chrome.zip | cut -f1)
+            echo "| Chrome | semantic-bookmark-chrome.zip | $chrome_size |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Chrome | ❌ Build failed | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ -f "semantic-bookmark-firefox.zip" ]; then
+            firefox_size=$(du -h semantic-bookmark-firefox.zip | cut -f1)
+            echo "| Firefox | semantic-bookmark-firefox.zip | $firefox_size |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Firefox | ❌ Build failed | - |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Click on the **Artifacts** section at the top of this workflow run to download the built extensions." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Installation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chrome**: Extract the zip and load unpacked extension from \`chrome://extensions\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Firefox**: Extract the zip and load temporary add-on from \`about:debugging\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary complete
+        run: echo "Build summary generated successfully"
