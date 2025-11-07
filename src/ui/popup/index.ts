@@ -10,7 +10,8 @@ function handleSearch(event: Event) {
   const query = (event.target as HTMLInputElement).value.trim();
 
   if (!query) {
-    resultsContainer.innerHTML = '<p class="placeholder">Enter a search query to find bookmarks</p>';
+    resultsContainer.innerHTML =
+      '<p class="placeholder">Enter a search query to find bookmarks</p>';
     return;
   }
 
