@@ -166,13 +166,13 @@ jobs:
         run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Download Chrome artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: semantic-bookmark-chrome_${{ steps.commit.outputs.short_sha }}
         continue-on-error: true
 
       - name: Download Firefox artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: semantic-bookmark-firefox_${{ steps.commit.outputs.short_sha }}
         continue-on-error: true
