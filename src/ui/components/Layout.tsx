@@ -13,7 +13,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
 
   return (
     <>
-      {children}
+      <div className="page-container">
+        <div className="page-content">{children}</div>
+      </div>
       <div className="footer">
         <div
           className={`footer-nav-item ${currentPage === 'search' ? 'active' : ''}`}

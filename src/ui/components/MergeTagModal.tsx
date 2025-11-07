@@ -4,7 +4,6 @@ import { Modal } from './Modal';
 
 import type { Tag } from '@/types/tag';
 
-
 interface MergeTagModalProps {
   isOpen: boolean;
   onClose: () => void;

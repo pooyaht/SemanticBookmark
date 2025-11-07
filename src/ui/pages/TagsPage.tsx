@@ -259,10 +259,7 @@ export const TagsPage: React.FC = () => {
         </div>
       </div>
 
-      <div
-        className="tags-list"
-        style={{ maxHeight: '400px', overflowY: 'auto' }}
-      >
+      <div className="tags-list">
         {loading && (
           <div className="empty-state">
             <svg fill="currentColor" viewBox="0 0 24 24">
@@ -292,11 +289,10 @@ export const TagsPage: React.FC = () => {
           </div>
         )}
 
-        {!loading && !error && tags.length > 0 && (
-          <div style={{ paddingBottom: '8px' }}>
-            {tags.map((tag) => renderTag(tag))}
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          tags.length > 0 &&
+          tags.map((tag) => renderTag(tag))}
       </div>
 
       <Modal
