@@ -294,8 +294,8 @@ Before creating a PR, ensure:
 
 - [ ] Code follows style guidelines (no emojis, minimal comments)
 - [ ] Tests are added and passing (meaningful tests, high coverage)
-- [ ] Linting passes (`npm run lint`)
-- [ ] Code is formatted (`npm run format`)
+- [ ] Linting passes (`pnpm lint`)
+- [ ] Code is formatted (`pnpm format`)
 - [ ] Commit messages are clear and descriptive
 - [ ] PR description explains the change and its purpose
 - [ ] Working example is demonstrated (trunk-based development)
@@ -411,7 +411,7 @@ For complete architecture details, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_
 1. **Develop in Chrome** - Faster DevTools reload, better debugging
 2. **Test in Firefox regularly** - Weekly during development, before each release
 3. **Use same code** - No conditional browser logic needed
-4. **Separate builds** - `npm run build:chrome` and `npm run build:firefox`
+4. **Separate builds** - `pnpm build:chrome` and `pnpm build:firefox`
 
 For complete cross-browser guide, see [docs/CROSS_BROWSER_GUIDE.md](docs/CROSS_BROWSER_GUIDE.md).
 
@@ -422,14 +422,14 @@ For complete cross-browser guide, see [docs/CROSS_BROWSER_GUIDE.md](docs/CROSS_B
 ### Installation
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Development (watch mode)
 
 ```bash
-npm run dev:chrome    # Start Chrome dev build with watch
-npm run dev:firefox   # Start Firefox dev build with watch
+pnpm dev:chrome    # Start Chrome dev build with watch
+pnpm dev:firefox   # Start Firefox dev build with watch
 ```
 
 After running the dev command:
@@ -439,20 +439,20 @@ After running the dev command:
 ### Testing
 
 ```bash
-npm test              # Run all tests
-npm run test:watch    # Run tests in watch mode
-npm run lint          # Check code quality with ESLint
-npm run format        # Format code with Prettier
+pnpm test              # Run all tests
+pnpm test:watch        # Run tests in watch mode
+pnpm lint              # Check code quality with ESLint
+pnpm format            # Format code with Prettier
 ```
 
 ### Production Build
 
 ```bash
-npm run build:chrome      # Build for Chrome
-npm run build:firefox     # Build for Firefox
-npm run build:all         # Build both browsers
-npm run package:chrome    # Create chrome.zip for store submission
-npm run package:firefox   # Create firefox.zip for store submission
+pnpm build:chrome      # Build for Chrome
+pnpm build:firefox     # Build for Firefox
+pnpm build:all         # Build both browsers
+pnpm package:chrome    # Create chrome.zip for store submission
+pnpm package:firefox   # Create firefox.zip for store submission
 ```
 
 ### Quality Checks
@@ -460,9 +460,9 @@ npm run package:firefox   # Create firefox.zip for store submission
 Before committing:
 
 ```bash
-npm run lint          # Must pass
-npm run format        # Must be run
-npm test              # All tests must pass
+pnpm lint          # Must pass
+pnpm format        # Must be run
+pnpm test          # All tests must pass
 ```
 
 ---

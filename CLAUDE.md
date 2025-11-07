@@ -9,22 +9,22 @@ This file contains all development guidelines, code style requirements, testing 
 **Common Commands:**
 ```bash
 # Development
-npm install                  # Install dependencies
-npm run dev:chrome           # Start Chrome dev build
-npm run dev:firefox          # Start Firefox dev build
+pnpm install                 # Install dependencies
+pnpm dev:chrome              # Start Chrome dev build
+pnpm dev:firefox             # Start Firefox dev build
 
 # Testing
-npm test                     # Run all tests
-npm run test:watch           # Watch mode
+pnpm test                    # Run all tests
+pnpm test:watch              # Watch mode
 
 # Quality
-npm run lint                 # Check code quality
-npm run format               # Format code with prettier
+pnpm lint                    # Check code quality
+pnpm format                  # Format code with prettier
 
 # Build
-npm run build:chrome         # Build for Chrome
-npm run build:firefox        # Build for Firefox
-npm run build:all            # Build both browsers
+pnpm build:chrome            # Build for Chrome
+pnpm build:firefox           # Build for Firefox
+pnpm build:all               # Build both browsers
 ```
 
 ## Project Context
