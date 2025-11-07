@@ -221,16 +221,17 @@ async function handleDeleteTag(tag: Tag) {
     return;
   }
 
+  isLoading = true;
+
   const confirmMessage =
     tag.usageCount > 0
       ? `Are you sure you want to delete "${tag.name}"?\n\nThis tag is used by ${tag.usageCount} bookmark${tag.usageCount !== 1 ? 's' : ''}. The tag will be removed from all bookmarks.`
       : `Are you sure you want to delete "${tag.name}"?`;
 
   if (!confirm(confirmMessage)) {
+    isLoading = false;
     return;
   }
-
-  isLoading = true;
 
   try {
     await tagService.deleteTag(tag.id);
@@ -247,15 +248,17 @@ async function handleRestoreDefaults() {
     return;
   }
 
+  isLoading = true;
+
   if (
     !confirm(
       'This will restore all default tags. Existing default tags will not be affected.\n\nContinue?'
     )
   ) {
+    isLoading = false;
     return;
   }
 
-  isLoading = true;
   restoreDefaultsBtn.disabled = true;
   addTagBtn.disabled = true;
 
