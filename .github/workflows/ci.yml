@@ -101,26 +101,12 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Package Chrome extension
-        run: |
-          cd dist/chrome
-          zip -r ../../semantic-bookmark-chrome.zip .
-          cd ../..
-
       - name: Upload Chrome artifact
         uses: actions/upload-artifact@v4
         with:
           name: semantic-bookmark-chrome
-          path: semantic-bookmark-chrome.zip
-          retention-days: 30
-          compression-level: 0  # Already zipped
-
-      - name: Upload Chrome dist folder (unzipped)
-        uses: actions/upload-artifact@v4
-        with:
-          name: semantic-bookmark-chrome-dist
           path: dist/chrome/
-          retention-days: 7
+          retention-days: 30
 
   # Job 4: Build Firefox Extension
   build-firefox:
@@ -149,26 +135,12 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Package Firefox extension
-        run: |
-          cd dist/firefox
-          zip -r ../../semantic-bookmark-firefox.zip .
-          cd ../..
-
       - name: Upload Firefox artifact
         uses: actions/upload-artifact@v4
         with:
           name: semantic-bookmark-firefox
-          path: semantic-bookmark-firefox.zip
-          retention-days: 30
-          compression-level: 0  # Already zipped
-
-      - name: Upload Firefox dist folder (unzipped)
-        uses: actions/upload-artifact@v4
-        with:
-          name: semantic-bookmark-firefox-dist
           path: dist/firefox/
-          retention-days: 7
+          retention-days: 30
 
   # Job 5: Build Summary
   build-summary:
@@ -194,30 +166,39 @@ jobs:
         run: |
           echo "## Build Artifacts Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Browser | File | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser | Artifact | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|----------|--------|" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "semantic-bookmark-chrome.zip" ]; then
-            chrome_size=$(du -h semantic-bookmark-chrome.zip | cut -f1)
-            echo "| Chrome | semantic-bookmark-chrome.zip | $chrome_size |" >> $GITHUB_STEP_SUMMARY
+          if [ -f "manifest.json" ]; then
+            echo "| Chrome | semantic-bookmark-chrome.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Chrome | ❌ Build failed | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Chrome | semantic-bookmark-chrome.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
-          if [ -f "semantic-bookmark-firefox.zip" ]; then
-            firefox_size=$(du -h semantic-bookmark-firefox.zip | cut -f1)
-            echo "| Firefox | semantic-bookmark-firefox.zip | $firefox_size |" >> $GITHUB_STEP_SUMMARY
+          cd .. 2>/dev/null || true
+          if [ -f "semantic-bookmark-firefox/manifest.json" ]; then
+            echo "| Firefox | semantic-bookmark-firefox.zip | ✓ Built |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Firefox | ❌ Build failed | - |" >> $GITHUB_STEP_SUMMARY
+            echo "| Firefox | semantic-bookmark-firefox.zip | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "Click on the **Artifacts** section at the top of this workflow run to download the built extensions." >> $GITHUB_STEP_SUMMARY
+          echo "1. Scroll to the **Artifacts** section at the top of this workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. Download \`semantic-bookmark-chrome.zip\` or \`semantic-bookmark-firefox.zip\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Extract the downloaded zip file" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🚀 Installation" >> $GITHUB_STEP_SUMMARY
-          echo "- **Chrome**: Extract the zip and load unpacked extension from \`chrome://extensions\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Firefox**: Extract the zip and load temporary add-on from \`about:debugging\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Chrome:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to \`chrome://extensions/\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Enable 'Developer mode' (top-right)" >> $GITHUB_STEP_SUMMARY
+          echo "3. Click 'Load unpacked'" >> $GITHUB_STEP_SUMMARY
+          echo "4. Select the extracted folder" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Firefox:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to \`about:debugging#/runtime/this-firefox\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click 'Load Temporary Add-on...'" >> $GITHUB_STEP_SUMMARY
+          echo "3. Select any file from the extracted folder" >> $GITHUB_STEP_SUMMARY
 
       - name: Summary complete
         run: echo "Build summary generated successfully"
