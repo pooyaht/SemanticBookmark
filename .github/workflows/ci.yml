@@ -86,7 +86,7 @@ jobs:
 
       - name: Get short commit hash
         id: commit
-        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -124,7 +124,7 @@ jobs:
 
       - name: Get short commit hash
         id: commit
-        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -163,7 +163,7 @@ jobs:
 
       - name: Get short commit hash
         id: commit
-        run: echo "short_sha=$(git rev-parse --short=5 HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Download Chrome artifact
         uses: actions/download-artifact@v4
