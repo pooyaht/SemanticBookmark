@@ -1,6 +1,7 @@
 # Semantic Bookmark Search Extension - Requirements & Design
 
 ## Project Overview
+
 A cross-browser extension (Chrome & Firefox) that enables semantic search over browser bookmarks with support for multiple embedding providers and optional AI-powered query enhancement.
 
 ## Functional Requirements
@@ -8,12 +9,14 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 ### 1. Core Features
 
 #### 1.1 Semantic Search
+
 - Users can search bookmarks using natural language queries
 - Search uses vector similarity (cosine similarity) between query and bookmark embeddings
 - Returns ranked results based on semantic relevance
 - Search includes bookmark title, URL, and page content (if available)
 
 #### 1.2 Embedding Provider Support
+
 - **Pluggable Architecture**: Support multiple embedding providers
 - **Multi-Provider Support**: Enable multiple providers simultaneously
   - Each bookmark can have embeddings from different models
@@ -31,6 +34,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
   - View which bookmarks have embeddings from which providers
 
 #### 1.3 Agent Mode (Optional)
+
 - **Availability**: Only when API provider is configured
 - **Purpose**: Advanced search with query re-ranking
 - **Features**:
@@ -39,6 +43,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
   - Natural language query refinement
 
 #### 1.3 Tagging System
+
 - **User-Defined Tags**: Users can add custom tags to bookmarks
 - **Tag Management**: Create, edit, delete, and organize tags
 - **Tag-Based Filtering**: Filter search results by tags
@@ -48,6 +53,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 - **Bulk Tagging**: Apply tags to multiple bookmarks at once
 
 #### 1.4 Content Crawling & Extraction (Essential)
+
 - **Page Content Fetching**: Automatically fetch and extract page content for all bookmarks
   - Extract main text content (strip HTML, ads, navigation)
   - Store title, description, and main content
@@ -72,6 +78,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
   - Re-crawl on content change detection
 
 #### 1.5 Bookmark Indexing
+
 - **Initial Index**: On first install, index all existing bookmarks
 - **Content Crawling**: Fetch page content for each bookmark during indexing
 - **Incremental Updates**: Listen to bookmark changes (add/update/delete)
@@ -81,7 +88,8 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 
 ### 2. User Interface
 
-#### 2.1 Side Panel (Primary)
+#### 2.1 Popup Interface
+
 - **Search Input**: Text field for queries
 - **Provider Selector**: Dropdown to choose which provider(s) to search with
   - Option to search with specific provider
@@ -98,6 +106,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 - **Tag Management**: Quick tag add/remove for bookmarks
 
 #### 2.2 Settings Page
+
 - **Provider Management**:
   - List of all configured providers (local and API-based)
   - Add new provider button
@@ -134,6 +143,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
   - IndexedDB storage quota
 
 #### 2.3 Future UI Extensions (Design Considerations)
+
 - Omnibox integration: Search via address bar (keyword: "bs" for bookmark search)
 - Keyboard shortcuts
 - Context menu integration
@@ -141,12 +151,14 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 ### 3. Privacy & Security
 
 #### 3.1 Privacy-First Design
+
 - **Local-First**: All data stored locally by default
 - **No Telemetry**: No usage tracking or data collection
 - **Transparent**: Clear indication when data leaves the browser
 - **User Control**: User explicitly enables cloud APIs
 
 #### 3.2 Data Handling
+
 - **Local Provider**: All embeddings generated and stored locally
 - **API Provider**: Bookmarks sent to API only for embedding generation
   - User is informed and accepts this trade-off
@@ -156,11 +168,13 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 ### 4. Performance Requirements
 
 #### 4.1 Scale
+
 - Support up to 1000 bookmarks efficiently
 - Target: <500ms search latency for typical queries
 - Indexing: Process bookmarks in batches to avoid blocking
 
 #### 4.2 Storage
+
 - Use IndexedDB with Dexie.js for vector storage
 - Efficient storage: Float32 arrays for embeddings
 - Compression for large bookmark collections
@@ -170,12 +184,14 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 ### 1. Technology Stack
 
 #### 1.1 Core
+
 - **Manifest**: V3 (cross-browser compatible)
 - **Language**: TypeScript
 - **Build Tool**: Webpack or Vite
 - **Polyfill**: webextension-polyfill for cross-browser compatibility
 
 #### 1.2 Libraries
+
 - **Storage**: Dexie.js (IndexedDB wrapper)
 - **ML**: TensorFlow.js (for local embeddings)
 - **Vector Operations**: ml-distance or custom cosine similarity
@@ -187,6 +203,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 - **UI**: Vanilla JS/TS or lightweight framework (Preact/Svelte)
 
 #### 1.3 Build System
+
 - Single codebase, separate builds for Chrome/Firefox
 - Conditional manifest fields based on browser target
 - Shared source code with browser-specific overrides if needed
@@ -197,7 +214,7 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
 ┌─────────────────────────────────────────────────────────────┐
 │                        UI Layer                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  Side Panel  │  │   Settings   │  │ (Future:     │      │
+│  │    Popup     │  │   Settings   │  │ (Future:     │      │
 │  │              │  │     Page     │  │  Omnibox)    │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
@@ -247,114 +264,121 @@ A cross-browser extension (Chrome & Firefox) that enables semantic search over b
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                  Browser APIs                                │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │  Bookmarks  │  │   Storage   │  │  Side Panel │         │
-│  │     API     │  │     API     │  │     API     │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│  ┌──────────────────────┐  ┌──────────────────────┐         │
+│  │     Bookmarks        │  │      Storage         │         │
+│  │       API            │  │        API           │         │
+│  └──────────────────────┘  └──────────────────────┘         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 3. Data Models
 
 #### 3.1 Bookmark Entry
+
 ```typescript
 interface BookmarkEntry {
-  id: string;                    // Browser bookmark ID
-  title: string;                 // Bookmark title
-  url: string;                   // Bookmark URL
-  dateAdded: number;             // Timestamp
-  dateModified?: number;         // Timestamp
-  parentId?: string;             // Folder ID
-  tags: string[];                // User-defined tags + folder tags
-  crawlEnabled: boolean;         // Whether to crawl this bookmark
-  lastCrawled?: number;          // Last crawl timestamp
-  crawlDepth: number;            // Depth to crawl (0=disabled, 1-2=levels)
+  id: string; // Browser bookmark ID
+  title: string; // Bookmark title
+  url: string; // Bookmark URL
+  dateAdded: number; // Timestamp
+  dateModified?: number; // Timestamp
+  parentId?: string; // Folder ID
+  tags: string[]; // User-defined tags + folder tags
+  crawlEnabled: boolean; // Whether to crawl this bookmark
+  lastCrawled?: number; // Last crawl timestamp
+  crawlDepth: number; // Depth to crawl (0=disabled, 1-2=levels)
 }
 ```
 
 #### 3.2 Content Entry
+
 ```typescript
 interface ContentEntry {
-  bookmarkId: string;            // Foreign key to bookmark
-  url: string;                   // Content URL (may differ from bookmark if related page)
-  type: 'primary' | 'related';   // Primary bookmark or related page
-  title: string;                 // Page title
-  description?: string;          // Meta description
-  content: string;               // Extracted main content
-  contentHash: string;           // Hash of content for change detection
-  links: string[];               // Extracted same-origin links
-  fetchedAt: number;             // Timestamp
-  fetchError?: string;           // Error message if fetch failed
+  bookmarkId: string; // Foreign key to bookmark
+  url: string; // Content URL (may differ from bookmark if related page)
+  type: 'primary' | 'related'; // Primary bookmark or related page
+  title: string; // Page title
+  description?: string; // Meta description
+  content: string; // Extracted main content
+  contentHash: string; // Hash of content for change detection
+  links: string[]; // Extracted same-origin links
+  fetchedAt: number; // Timestamp
+  fetchError?: string; // Error message if fetch failed
 }
 ```
 
 #### 3.3 Embedding Entry
+
 ```typescript
 interface EmbeddingEntry {
-  id: string;                    // Unique embedding ID
-  bookmarkId: string;            // Foreign key to bookmark
-  providerId: string;            // Which provider generated this
-  modelName: string;             // Model name (e.g., "text-embedding-3-small")
-  embedding: Float32Array;       // Vector embedding
-  dimension: number;             // Embedding dimension (e.g., 512)
-  createdAt: number;             // Timestamp
-  contentHash: string;           // Hash of content used for embedding
-  includesRelated: boolean;      // Whether related pages were included
+  id: string; // Unique embedding ID
+  bookmarkId: string; // Foreign key to bookmark
+  providerId: string; // Which provider generated this
+  modelName: string; // Model name (e.g., "text-embedding-3-small")
+  embedding: Float32Array; // Vector embedding
+  dimension: number; // Embedding dimension (e.g., 512)
+  createdAt: number; // Timestamp
+  contentHash: string; // Hash of content used for embedding
+  includesRelated: boolean; // Whether related pages were included
 }
 ```
 
 #### 3.4 Tag Entry
+
 ```typescript
 interface TagEntry {
-  id: string;                    // Unique tag ID
-  name: string;                  // Tag name (unique)
-  color?: string;                // Optional color for UI
-  createdAt: number;             // Timestamp
-  source: 'user' | 'folder';     // User-created or from bookmark folder
+  id: string; // Unique tag ID
+  name: string; // Tag name (unique)
+  color?: string; // Optional color for UI
+  createdAt: number; // Timestamp
+  source: 'user' | 'folder'; // User-created or from bookmark folder
 }
 ```
 
 #### 3.5 Related Page Entry
+
 ```typescript
 interface RelatedPageEntry {
-  id: string;                    // Unique ID
-  bookmarkId: string;            // Foreign key to bookmark
-  url: string;                   // Related page URL
-  depth: number;                 // Discovery depth (1 or 2)
-  title?: string;                // Page title
-  discoveredAt: number;          // Timestamp
+  id: string; // Unique ID
+  bookmarkId: string; // Foreign key to bookmark
+  url: string; // Related page URL
+  depth: number; // Discovery depth (1 or 2)
+  title?: string; // Page title
+  discoveredAt: number; // Timestamp
 }
 ```
 
 #### 3.3 Provider Configuration
+
 ```typescript
 interface ProviderConfig {
-  id: string;                    // Unique provider ID
-  type: 'local' | 'api';         // Provider type
-  name: string;                  // Display name
-  enabled: boolean;              // Is this provider active
+  id: string; // Unique provider ID
+  type: 'local' | 'api'; // Provider type
+  name: string; // Display name
+  enabled: boolean; // Is this provider active
   config: {
     // For API providers
-    apiUrl?: string;             // API endpoint
-    apiKey?: string;             // API key (encrypted)
-    model?: string;              // Model name
+    apiUrl?: string; // API endpoint
+    apiKey?: string; // API key (encrypted)
+    model?: string; // Model name
     // For local providers
-    modelPath?: string;          // TF.js model path
-    dimension?: number;          // Embedding dimension
+    modelPath?: string; // TF.js model path
+    dimension?: number; // Embedding dimension
   };
 }
 ```
 
 #### 3.6 Search Result
+
 ```typescript
 interface SearchResult {
   bookmark: BookmarkEntry;
-  score: number;                 // Similarity score (0-1)
-  providerId: string;            // Which provider matched this result
-  modelName: string;             // Model name used
-  highlights?: string[];         // Matching phrases from content
-  matchedTags?: string[];        // Tags that matched the query
-  contentPreview?: string;       // Preview of matched content
+  score: number; // Similarity score (0-1)
+  providerId: string; // Which provider matched this result
+  modelName: string; // Model name used
+  highlights?: string[]; // Matching phrases from content
+  matchedTags?: string[]; // Tags that matched the query
+  contentPreview?: string; // Preview of matched content
   metadata?: {
     searchTime: number;
     hasRelatedPages: boolean;
@@ -366,6 +390,7 @@ interface SearchResult {
 ### 4. Provider Interface
 
 #### 4.1 Embedding Provider Contract
+
 ```typescript
 interface EmbeddingProvider {
   id: string;
@@ -395,12 +420,14 @@ interface EmbeddingProvider {
 #### 4.2 Built-in Providers
 
 **Local Provider (TensorFlow.js)**
+
 - Model: Universal Sentence Encoder
 - Dimension: 512
 - Pros: Privacy, offline, no API costs
 - Cons: Initial model download (~50MB), slower than API
 
 **API Provider Template**
+
 - Generic HTTP API client
 - Configurable endpoint and request format
 - Support for common formats (OpenAI, Anthropic, Ollama)
@@ -419,7 +446,8 @@ db.version(1).stores({
 
   // Embeddings - multiple per bookmark (one per provider)
   // Composite key allows multiple embeddings per bookmark
-  embeddings: 'id, [bookmarkId+providerId], bookmarkId, providerId, modelName, createdAt',
+  embeddings:
+    'id, [bookmarkId+providerId], bookmarkId, providerId, modelName, createdAt',
 
   // Provider configurations
   providers: 'id, type, enabled, modelName',
@@ -440,13 +468,14 @@ db.version(1).stores({
   indexQueue: '++id, bookmarkId, providerId, status, createdAt',
 
   // Crawl queue (for background crawling)
-  crawlQueue: '++id, bookmarkId, url, depth, status, createdAt'
+  crawlQueue: '++id, bookmarkId, url, depth, status, createdAt',
 });
 ```
 
 ### 6. Key Workflows
 
 #### 6.1 Initial Setup
+
 1. Extension installed
 2. Request bookmark permissions
 3. Show settings page
@@ -456,7 +485,8 @@ db.version(1).stores({
 7. Show progress in UI
 
 #### 6.2 Search Flow (Single Provider)
-1. User enters query in side panel
+
+1. User enters query in popup
 2. User selects provider (or uses default)
 3. Apply tag filters if selected
 4. Generate query embedding using selected provider
@@ -468,6 +498,7 @@ db.version(1).stores({
 10. Display in UI with scores, provider info, tags, and content preview
 
 #### 6.2b Search Flow (Multi-Provider / Aggregate)
+
 1. User enters query and selects "All Providers"
 2. Apply tag filters if selected
 3. For each enabled provider:
@@ -480,6 +511,7 @@ db.version(1).stores({
 7. Display results with provider badges showing which model matched
 
 #### 6.3 Agent Mode Search (Optional)
+
 1. User enters query with agent mode enabled
 2. Send query to LLM for understanding
 3. LLM generates multiple query variations
@@ -488,6 +520,7 @@ db.version(1).stores({
 6. Return top results with explanations
 
 #### 6.4 Content Crawling Workflow
+
 1. User adds new bookmark or triggers re-crawl
 2. Add bookmark to crawl queue
 3. Background crawler processes queue:
@@ -504,6 +537,7 @@ db.version(1).stores({
 9. Show crawl progress in UI
 
 #### 6.5 Provider Management Workflow
+
 1. **Adding New Provider**:
    - User clicks "Add Provider" in settings
    - Configure provider (type, API details, model name)
@@ -530,6 +564,7 @@ db.version(1).stores({
    - Process in batches with progress bar
 
 #### 6.6 Bookmark Update Workflow
+
 1. Browser fires bookmark event (add/update/delete)
 2. Background service worker receives event
 3. For **add**:
@@ -547,6 +582,7 @@ db.version(1).stores({
 7. Update UI if search is open
 
 #### 6.7 Tagging Workflow
+
 1. **Adding Tags to Bookmark**:
    - User selects bookmark in results
    - Clicks tag button / dropdown
@@ -575,6 +611,7 @@ db.version(1).stores({
 ### 7. Cross-Browser Compatibility
 
 #### 7.1 Manifest Differences
+
 ```json
 {
   "manifest_version": 3,
@@ -594,6 +631,7 @@ db.version(1).stores({
 ```
 
 #### 7.2 Build Configuration
+
 - Base manifest.json with common fields
 - Browser-specific overrides in separate files
 - Build script merges manifests per browser
@@ -602,18 +640,21 @@ db.version(1).stores({
 ### 8. Performance Optimizations
 
 #### 8.1 Indexing
+
 - Batch processing: Generate embeddings for multiple bookmarks at once
 - Rate limiting: Don't overwhelm API providers
 - Background processing: Use service worker queues
 - Caching: Store processed content hashes to avoid re-indexing
 
 #### 8.2 Search
+
 - Early termination: Stop after finding N results above threshold
 - Index optimization: Store embeddings in efficient format
 - Lazy loading: Load bookmark details only for top results
 - Debouncing: Wait for user to stop typing before searching
 
 #### 8.3 Memory Management
+
 - Dispose TF.js models when not in use
 - Clear embedding cache for inactive providers
 - Limit result set size
@@ -621,32 +662,36 @@ db.version(1).stores({
 ### 9. Error Handling
 
 #### 9.1 Provider Errors
+
 - API timeout: Fallback to cached results or show error
 - Invalid API key: Show clear error message
 - Network errors: Retry with exponential backoff
 - Model load failure: Fallback to another provider if available
 
 #### 9.2 Storage Errors
+
 - IndexedDB quota exceeded: Prompt user to clear old embeddings
 - Corruption: Provide re-index option
 - Migration errors: Log and notify user
 
 #### 9.3 Browser API Errors
+
 - Bookmark permission denied: Show permission prompt
-- Side panel not supported: Fallback to popup
 
 ## Development Phases
 
 ### Phase 1: Foundation (MVP)
+
 - [ ] Project setup with TypeScript + Webpack/Vite
 - [ ] Cross-browser manifest configuration
 - [ ] IndexedDB schema with Dexie.js (all tables)
 - [ ] Browser bookmarks API integration
-- [ ] Basic UI: Side panel with search input
+- [ ] Basic UI: Popup with search input
 - [ ] Content crawling infrastructure
 - [ ] Readability integration for content extraction
 
 ### Phase 2: Content Crawling & Storage
+
 - [ ] Implement crawler with rate limiting
 - [ ] Robots.txt parser integration
 - [ ] Same-origin link discovery
@@ -655,6 +700,7 @@ db.version(1).stores({
 - [ ] Progress tracking UI for crawling
 
 ### Phase 3: Local Embedding Provider
+
 - [ ] TensorFlow.js integration
 - [ ] Local embedding provider implementation
 - [ ] Initial indexing flow (with crawled content)
@@ -662,6 +708,7 @@ db.version(1).stores({
 - [ ] Display search results with content previews
 
 ### Phase 4: Multi-Provider Support
+
 - [ ] Provider interface design
 - [ ] Provider registry and management
 - [ ] Generic API provider implementation
@@ -672,6 +719,7 @@ db.version(1).stores({
 - [ ] Aggregated search across providers
 
 ### Phase 5: Tagging System
+
 - [ ] Tag data model and storage
 - [ ] Tag UI components (add, edit, delete)
 - [ ] Folder-to-tag conversion
@@ -681,6 +729,7 @@ db.version(1).stores({
 - [ ] Tag management page
 
 ### Phase 6: Advanced Features
+
 - [ ] Agent mode with query enhancement
 - [ ] Result re-ranking with LLM
 - [ ] Incremental indexing (bookmark change listeners)
@@ -690,6 +739,7 @@ db.version(1).stores({
 - [ ] Export/import settings and tags
 
 ### Phase 7: Polish & Optimization
+
 - [ ] Performance optimization (large bookmark collections)
 - [ ] Error handling improvements
 - [ ] User onboarding flow
@@ -700,6 +750,7 @@ db.version(1).stores({
 - [ ] Package for Chrome Web Store & Firefox Add-ons
 
 ### Future Enhancements
+
 - [ ] Omnibox integration
 - [ ] Keyboard shortcuts
 - [ ] Context menu search
@@ -713,18 +764,21 @@ db.version(1).stores({
 ## Testing Strategy
 
 ### Unit Tests
+
 - Embedding provider implementations
 - Vector similarity calculations
 - Storage layer (Dexie operations)
 - Utility functions
 
 ### Integration Tests
+
 - Provider switching flow
 - Indexing pipeline
 - Search end-to-end
 - Bookmark sync
 
 ### Manual Testing
+
 - Chrome installation and usage
 - Firefox installation and usage
 - Cross-browser feature parity
@@ -770,6 +824,7 @@ db.version(1).stores({
 ---
 
 **Next Steps:**
+
 1. Review and approve requirements
 2. Set up project structure
 3. Begin Phase 1 implementation
