@@ -31,7 +31,8 @@ export default defineConfig({
           const files = readdirSync(srcUiPath);
           files.forEach((file) => {
             const srcFile = join(srcUiPath, file);
-            const destFile = join(distPath, file);
+            const destFileName = file === 'index.html' ? 'popup.html' : file;
+            const destFile = join(distPath, destFileName);
             if (statSync(srcFile).isFile()) {
               renameSync(srcFile, destFile);
             }
@@ -82,8 +83,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         background: resolve(__dirname, 'src/background/index.ts'),
-        popup: resolve(__dirname, 'src/ui/popup.html'),
-        tags: resolve(__dirname, 'src/ui/tags.html'),
+        popup: resolve(__dirname, 'src/ui/index.html'),
       },
       output: {
         entryFileNames: '[name].js',

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -6,9 +7,10 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
+  const navigate = useNavigate();
+
   const handleNavigation = (page: string) => {
-    const pageName = page === 'search' ? 'popup' : 'tags';
-    window.location.href = `${pageName}.html`;
+    navigate(`/${page}`);
   };
 
   return (

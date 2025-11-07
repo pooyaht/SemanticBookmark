@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { TagsPage } from './pages/TagsPage';
+import { App } from './App';
 import './styles/common.css';
 
 const container = document.getElementById('root');
@@ -12,6 +12,6 @@ if (!container) {
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
-    <TagsPage />
+    <App />
   </React.StrictMode>
 );
