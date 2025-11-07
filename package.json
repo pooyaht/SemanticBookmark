@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A cross-browser extension for semantic search over bookmarks with AI-powered embeddings",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "webpack --config build/webpack.dev.js --watch",
     "dev:chrome": "cross-env BROWSER=chrome npm run dev",

@@ -1,29 +1,5 @@
-import browser from 'webextension-polyfill';
-
-console.log('Semantic Bookmark Search - Popup loaded');
-
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 const resultsContainer = document.getElementById('results') as HTMLDivElement;
-const openSidepanelButton = document.getElementById('open-sidepanel') as HTMLButtonElement;
-
-// Check if side panel API is available (Chrome only)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const browserAny = browser as any;
-if (browserAny.sidePanel && openSidepanelButton) {
-  openSidepanelButton.style.display = 'block';
-  openSidepanelButton.addEventListener('click', async () => {
-    try {
-      // Get current window
-      const windows = await browser.windows.getCurrent();
-      if (windows.id && browserAny.sidePanel) {
-        await browserAny.sidePanel.open({ windowId: windows.id });
-        window.close();
-      }
-    } catch (error) {
-      console.error('Failed to open side panel:', error);
-    }
-  });
-}
 
 if (searchInput && resultsContainer) {
   searchInput.addEventListener('input', handleSearch);
@@ -46,7 +22,3 @@ function handleSearch(event: Event) {
     </div>
   `;
 }
-
-// Log extension version
-const manifest = browser.runtime.getManifest();
-console.log(`Extension version: ${manifest.version}`);
