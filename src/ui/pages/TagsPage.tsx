@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { Layout } from '../components/Layout';
+import { MergeTagModal } from '../components/MergeTagModal';
 import { Modal } from '../components/Modal';
 
 import type { Tag } from '@/types/tag';
@@ -16,7 +17,9 @@ export const TagsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [mergingTag, setMergingTag] = useState<Tag | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [addFormData, setAddFormData] = useState({ name: '', description: '' });
@@ -43,7 +46,9 @@ export const TagsPage: React.FC = () => {
 
   const handleAddTag = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !addFormData.name.trim()) {return;}
+    if (isProcessing || !addFormData.name.trim()) {
+      return;
+    }
 
     setIsProcessing(true);
     try {
@@ -73,7 +78,9 @@ export const TagsPage: React.FC = () => {
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProcessing || !editingTag || !editFormData.name.trim()) {return;}
+    if (isProcessing || !editingTag || !editFormData.name.trim()) {
+      return;
+    }
 
     setIsProcessing(true);
     try {
@@ -94,7 +101,9 @@ export const TagsPage: React.FC = () => {
   };
 
   const handleDeleteTag = async (tag: Tag) => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
 
     if (tag.source === TagSource.DEFAULT) {
       alert('Cannot delete default tags');
@@ -106,7 +115,9 @@ export const TagsPage: React.FC = () => {
         ? `Are you sure you want to delete "${tag.name}"?\n\nThis tag is used by ${tag.usageCount} bookmark${tag.usageCount !== 1 ? 's' : ''}. The tag will be removed from all bookmarks.`
         : `Are you sure you want to delete "${tag.name}"?`;
 
-    if (!confirm(confirmMessage)) {return;}
+    if (!confirm(confirmMessage)) {
+      return;
+    }
 
     setIsProcessing(true);
     try {
@@ -119,8 +130,33 @@ export const TagsPage: React.FC = () => {
     }
   };
 
+  const handleOpenMerge = (tag: Tag) => {
+    setMergingTag(tag);
+    setIsMergeModalOpen(true);
+  };
+
+  const handleMerge = async (targetTagId: string) => {
+    if (isProcessing || !mergingTag) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await tagService.mergeTags(mergingTag.id, targetTagId);
+      setIsMergeModalOpen(false);
+      setMergingTag(null);
+      await loadTags();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to merge tags');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleRestoreDefaults = async () => {
-    if (isProcessing) {return;}
+    if (isProcessing) {
+      return;
+    }
 
     if (
       !confirm(
@@ -169,6 +205,16 @@ export const TagsPage: React.FC = () => {
           >
             <svg fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
+            </svg>
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => handleOpenMerge(tag)}
+            title="Merge tag"
+            disabled={!isDeletable || isProcessing}
+          >
+            <svg fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17 20.41L18.41 19 15 15.59 13.59 17 17 20.41zM7.5 8H11v5.59L5.59 19 7 20.41l6-6V8h3.5L12 3.5 7.5 8z" />
             </svg>
           </button>
           <button
@@ -395,6 +441,18 @@ export const TagsPage: React.FC = () => {
           </div>
         </form>
       </Modal>
+
+      <MergeTagModal
+        isOpen={isMergeModalOpen}
+        onClose={() => {
+          setIsMergeModalOpen(false);
+          setMergingTag(null);
+        }}
+        sourceTag={mergingTag}
+        availableTags={tags}
+        onMerge={handleMerge}
+        isProcessing={isProcessing}
+      />
     </Layout>
   );
 };
