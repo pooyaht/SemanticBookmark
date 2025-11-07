@@ -5,14 +5,33 @@ import { db } from '@/storage/database';
 import { TagSource, TagAssignmentSource } from '@/types/tag';
 
 export class TagService {
+  private tagCache: Map<string, Tag> = new Map();
+  private cacheInitialized = false;
+
+  private async ensureCacheInitialized(): Promise<void> {
+    if (!this.cacheInitialized) {
+      const tags = await db.tags.toArray();
+      this.tagCache.clear();
+      tags.forEach((tag) => this.tagCache.set(tag.name.toLowerCase(), tag));
+      this.cacheInitialized = true;
+    }
+  }
+
+  private invalidateCache(): void {
+    this.cacheInitialized = false;
+    this.tagCache.clear();
+  }
+
   async createTag(
     name: string,
     source: TagSource = TagSource.USER,
     description?: string,
     color?: string
   ): Promise<Tag> {
-    const existingTag = await this.getTagByName(name);
-    if (existingTag) {
+    await this.ensureCacheInitialized();
+
+    const normalizedName = name.toLowerCase();
+    if (this.tagCache.has(normalizedName)) {
       throw new Error(`Tag with name "${name}" already exists`);
     }
 
@@ -28,6 +47,7 @@ export class TagService {
     };
 
     await db.tags.add(tag);
+    this.tagCache.set(normalizedName, tag);
     return tag;
   }
 
@@ -36,11 +56,13 @@ export class TagService {
   }
 
   async getTagByName(name: string): Promise<Tag | undefined> {
-    return await db.tags.where('name').equals(name).first();
+    await this.ensureCacheInitialized();
+    return this.tagCache.get(name.toLowerCase());
   }
 
   async getAllTags(): Promise<Tag[]> {
-    return await db.tags.toArray();
+    await this.ensureCacheInitialized();
+    return Array.from(this.tagCache.values());
   }
 
   async getDefaultTags(): Promise<Tag[]> {
@@ -64,6 +86,8 @@ export class TagService {
       name: newName,
       updatedAt: new Date(),
     });
+
+    this.invalidateCache();
   }
 
   async updateTagDescription(
@@ -79,6 +103,8 @@ export class TagService {
       description,
       updatedAt: new Date(),
     });
+
+    this.invalidateCache();
   }
 
   async updateTagColor(tagId: string, color: string): Promise<void> {
@@ -91,6 +117,8 @@ export class TagService {
       color,
       updatedAt: new Date(),
     });
+
+    this.invalidateCache();
   }
 
   async deleteTag(tagId: string): Promise<void> {
@@ -107,6 +135,8 @@ export class TagService {
       await db.bookmarkTags.where('tagId').equals(tagId).delete();
       await db.tags.delete(tagId);
     });
+
+    this.invalidateCache();
   }
 
   async mergeTags(sourceTagId: string, targetTagId: string): Promise<void> {
@@ -157,6 +187,8 @@ export class TagService {
       await this.recalculateUsageCount(targetTagId);
       await db.tags.delete(sourceTagId);
     });
+
+    this.invalidateCache();
   }
 
   async assignTagToBookmark(
@@ -244,13 +276,24 @@ export class TagService {
   }
 
   async restoreDefaultTags(): Promise<void> {
+    const uniqueTagNames = new Set<string>();
+    const tagsToCreate: Array<{ name: string; description: string }> = [];
+
     for (const defaultTag of DEFAULT_TAGS) {
-      const exists = await this.getTagByName(defaultTag.name);
+      const normalizedName = defaultTag.name.toLowerCase();
+      if (!uniqueTagNames.has(normalizedName)) {
+        uniqueTagNames.add(normalizedName);
+        tagsToCreate.push(defaultTag);
+      }
+    }
+
+    for (const tagDef of tagsToCreate) {
+      const exists = await this.getTagByName(tagDef.name);
       if (!exists) {
         await this.createTag(
-          defaultTag.name,
+          tagDef.name,
           TagSource.DEFAULT,
-          defaultTag.description
+          tagDef.description
         );
       }
     }

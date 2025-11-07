@@ -25,6 +25,7 @@ const cancelEditBtn = document.getElementById(
 
 let currentEditingTagId: string | null = null;
 let isLoading = false;
+let listenersAttached = false;
 
 async function loadTags() {
   try {
@@ -276,29 +277,38 @@ async function handleRestoreDefaults() {
   }
 }
 
-addTagBtn.addEventListener('click', showAddModal);
-restoreDefaultsBtn.addEventListener('click', () => {
-  void handleRestoreDefaults();
-});
-cancelAddBtn.addEventListener('click', hideAddModal);
-cancelEditBtn.addEventListener('click', hideEditModal);
-addTagForm.addEventListener('submit', (event) => {
-  void handleAddTag(event);
-});
-editTagForm.addEventListener('submit', (event) => {
-  void handleSaveEdit(event);
-});
-
-addModal.addEventListener('click', (event) => {
-  if (event.target === addModal) {
-    hideAddModal();
+function attachEventListeners() {
+  if (listenersAttached) {
+    return;
   }
-});
 
-editModal.addEventListener('click', (event) => {
-  if (event.target === editModal) {
-    hideEditModal();
-  }
-});
+  addTagBtn.addEventListener('click', showAddModal);
+  restoreDefaultsBtn.addEventListener('click', () => {
+    void handleRestoreDefaults();
+  });
+  cancelAddBtn.addEventListener('click', hideAddModal);
+  cancelEditBtn.addEventListener('click', hideEditModal);
+  addTagForm.addEventListener('submit', (event) => {
+    void handleAddTag(event);
+  });
+  editTagForm.addEventListener('submit', (event) => {
+    void handleSaveEdit(event);
+  });
 
+  addModal.addEventListener('click', (event) => {
+    if (event.target === addModal) {
+      hideAddModal();
+    }
+  });
+
+  editModal.addEventListener('click', (event) => {
+    if (event.target === editModal) {
+      hideEditModal();
+    }
+  });
+
+  listenersAttached = true;
+}
+
+attachEventListeners();
 void loadTags();
