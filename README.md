@@ -78,7 +78,7 @@ A powerful cross-browser extension that enables **semantic search** over your bo
 
 ### Prerequisites
 - Node.js >= 20.0.0
-- npm >= 10.0.0
+- pnpm >= 9.0.0 (Install with: `npm install -g pnpm`)
 
 ### Setup
 
@@ -88,16 +88,16 @@ git clone https://github.com/pooyaht/SemanticBookmark.git
 cd SemanticBookmark
 
 # Install dependencies
-npm install
+pnpm install
 
 # Build for development (with watch mode)
-npm run dev:chrome   # For Chrome
-npm run dev:firefox  # For Firefox
+pnpm dev:chrome   # For Chrome
+pnpm dev:firefox  # For Firefox
 
 # Build for production
-npm run build:chrome   # Chrome only
-npm run build:firefox  # Firefox only
-npm run build:all      # Both browsers
+pnpm build:chrome   # Chrome only
+pnpm build:firefox  # Firefox only
+pnpm build:all      # Both browsers
 ```
 
 ### Project Structure
@@ -122,23 +122,23 @@ semantic-bookmark/
 
 ```bash
 # Development
-npm run dev:chrome        # Watch mode for Chrome
-npm run dev:firefox       # Watch mode for Firefox
+pnpm dev:chrome        # Watch mode for Chrome
+pnpm dev:firefox       # Watch mode for Firefox
 
 # Building
-npm run build:all         # Build both browsers
-npm run package:all       # Package both as .zip
+pnpm build:all         # Build both browsers
+pnpm package:all       # Package both as .zip
 
 # Testing
-npm test                  # Run tests
-npm run test:watch        # Watch mode
-npm run test:coverage     # With coverage
+pnpm test              # Run tests
+pnpm test:watch        # Watch mode
+pnpm test:coverage     # With coverage
 
 # Code Quality
-npm run lint              # Run ESLint
-npm run lint:fix          # Fix linting issues
-npm run format            # Format with Prettier
-npm run type-check        # TypeScript type checking
+pnpm lint              # Run ESLint
+pnpm lint:fix          # Fix linting issues
+pnpm format            # Format with Prettier
+pnpm type-check        # TypeScript type checking
 ```
 
 ## 📚 Documentation
@@ -169,13 +169,13 @@ npm run type-check        # TypeScript type checking
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Watch mode
-npm run test:watch
+pnpm test:watch
 
 # Coverage report
-npm run test:coverage
+pnpm test:coverage
 ```
 
 Coverage thresholds: 70% (branches, functions, lines, statements)

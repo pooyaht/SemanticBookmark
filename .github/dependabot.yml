@@ -1,7 +1,7 @@
 version: 2
 updates:
-  # Keep npm dependencies up to date
-  - package-ecosystem: "npm"
+  # Keep pnpm dependencies up to date
+  - package-ecosystem: "npm"  # Use "npm" for pnpm projects
     directory: "/"
     schedule:
       interval: "weekly"
