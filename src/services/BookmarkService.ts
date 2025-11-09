@@ -19,7 +19,7 @@ export class BookmarkService {
   }
 
   async getVisibleBookmarks(): Promise<Bookmark[]> {
-    return await db.bookmarks.where('hidden').equals(false).toArray();
+    return await db.bookmarks.filter((b) => !b.hidden).toArray();
   }
 
   async getBookmark(id: string): Promise<Bookmark | undefined> {

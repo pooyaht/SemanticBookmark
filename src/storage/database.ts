@@ -17,7 +17,7 @@ export class SemanticBookmarkDatabase extends Dexie {
     this.version(STORAGE_CONFIG.DB_VERSION).stores({
       tags: 'id, name, source, usageCount',
       bookmarkTags: '[bookmarkId+tagId], bookmarkId, tagId, assignedBy',
-      bookmarks: 'id, url, title, version, hidden, dateAdded, lastModified',
+      bookmarks: 'id, url, title, version, dateAdded, lastModified',
     });
   }
 }
