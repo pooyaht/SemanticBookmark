@@ -141,15 +141,9 @@ export class BookmarkService {
     ) => {
       for (const node of nodes) {
         const isRootFolder = ROOT_FOLDERS.includes(node.title ?? '');
-        const currentPath = isRootFolder
-          ? []
-          : node.title
-            ? [...path, node.title]
-            : path;
 
         if (node.url) {
-          const folderPath =
-            currentPath.length > 0 ? currentPath.join('/') : undefined;
+          const folderPath = path.length > 0 ? path.join('/') : undefined;
 
           bookmarks.push({
             id: node.id,
@@ -164,7 +158,13 @@ export class BookmarkService {
         }
 
         if (node.children) {
-          traverse(node.children, currentPath);
+          const childPath = isRootFolder
+            ? []
+            : node.title
+              ? [...path, node.title]
+              : path;
+
+          traverse(node.children, childPath);
         }
       }
     };
