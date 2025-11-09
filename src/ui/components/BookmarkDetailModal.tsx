@@ -26,6 +26,8 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   );
   const [assignedTags, setAssignedTags] = useState<Tag[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -80,6 +82,8 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     );
 
     setAssignedTags([...assignedTags, tag]);
+    setTagInput('');
+    setShowSuggestions(false);
   };
 
   const handleRemoveTag = async (tagId: string) => {
@@ -87,33 +91,23 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     setAssignedTags(assignedTags.filter((t) => t.id !== tagId));
   };
 
-  const handleSelectTag = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const tagId = e.target.value;
-    if (!tagId) {
-      return;
-    }
-
-    const tag = availableTags.find((t) => t.id === tagId);
-    if (tag && !assignedTags.some((t) => t.id === tag.id)) {
-      await handleAddTag(tag);
-    }
-
-    e.target.value = '';
-  };
-
   const unassignedTags = availableTags.filter(
     (tag) => !assignedTags.some((t) => t.id === tag.id)
   );
 
-  const groupedTags = {
-    [TagSource.DEFAULT]: unassignedTags.filter(
+  const filteredTags = unassignedTags.filter((tag) =>
+    tag.name.toLowerCase().includes(tagInput.toLowerCase())
+  );
+
+  const groupedFilteredTags = {
+    [TagSource.DEFAULT]: filteredTags.filter(
       (t) => t.source === TagSource.DEFAULT
     ),
-    [TagSource.USER]: unassignedTags.filter((t) => t.source === TagSource.USER),
-    [TagSource.FOLDER]: unassignedTags.filter(
+    [TagSource.USER]: filteredTags.filter((t) => t.source === TagSource.USER),
+    [TagSource.FOLDER]: filteredTags.filter(
       (t) => t.source === TagSource.FOLDER
     ),
-    [TagSource.LLM]: unassignedTags.filter((t) => t.source === TagSource.LLM),
+    [TagSource.LLM]: filteredTags.filter((t) => t.source === TagSource.LLM),
   };
 
   const tagSourceLabels = {
@@ -121,6 +115,19 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     [TagSource.USER]: 'User Tags',
     [TagSource.FOLDER]: 'Folder Tags',
     [TagSource.LLM]: 'AI Tags',
+  };
+
+  const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTagInput(value);
+    setShowSuggestions(value.length > 0);
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setTagInput('');
+    }
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -175,29 +182,51 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
               ))}
             </div>
             {unassignedTags.length > 0 ? (
-              <select
-                className="form-input"
-                onChange={(e) => void handleSelectTag(e)}
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Select a tag to add...
-                </option>
-                {Object.entries(groupedTags).map(([source, tags]) =>
-                  tags.length > 0 ? (
-                    <optgroup
-                      key={source}
-                      label={tagSourceLabels[source as TagSource]}
-                    >
-                      {tags.map((tag) => (
-                        <option key={tag.id} value={tag.id}>
-                          {tag.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null
+              <div className="tag-input-wrapper">
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Type to search and add tags..."
+                  value={tagInput}
+                  onChange={handleTagInputChange}
+                  onKeyDown={handleTagInputKeyDown}
+                  onFocus={() => setShowSuggestions(tagInput.length > 0)}
+                  onBlur={() =>
+                    setTimeout(() => setShowSuggestions(false), 200)
+                  }
+                />
+                {showSuggestions && filteredTags.length > 0 && (
+                  <div className="tag-suggestions-grouped">
+                    {Object.entries(groupedFilteredTags).map(
+                      ([source, tags]) =>
+                        tags.length > 0 ? (
+                          <div key={source} className="tag-group">
+                            <div className="tag-group-label">
+                              {tagSourceLabels[source as TagSource]}
+                            </div>
+                            {tags.map((tag) => (
+                              <div
+                                key={tag.id}
+                                className="tag-suggestion-item"
+                                onClick={() => void handleAddTag(tag)}
+                              >
+                                {tag.name}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null
+                    )}
+                  </div>
                 )}
-              </select>
+                {showSuggestions && filteredTags.length === 0 && tagInput && (
+                  <div className="tag-suggestions-grouped">
+                    <div className="tag-no-results">
+                      No matching tags found. Only existing tags can be
+                      assigned.
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="form-hint">
                 {availableTags.length === 0

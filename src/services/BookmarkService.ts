@@ -133,6 +133,8 @@ export class BookmarkService {
       'Other Bookmarks',
       'Mobile Bookmarks',
       'Unfiled Bookmarks',
+      'mozilla',
+      'root',
     ];
 
     const traverse = (
