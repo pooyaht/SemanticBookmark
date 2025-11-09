@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentPage: 'search' | 'tags';
+  currentPage: 'search' | 'tags' | 'bookmarks';
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
@@ -50,6 +50,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
             <path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42zM5.5 7C4.67 7 4 6.33 4 5.5S4.67 4 5.5 4 7 4.67 7 5.5 6.33 7 5.5 7z" />
           </svg>
           <span>Tags</span>
+        </div>
+        <div
+          className={`footer-nav-item ${currentPage === 'bookmarks' ? 'active' : ''}`}
+          onClick={() => handleNavigation('bookmarks')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleNavigation('bookmarks');
+            }
+          }}
+        >
+          <svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z" />
+          </svg>
+          <span>Bookmarks</span>
         </div>
       </div>
     </>

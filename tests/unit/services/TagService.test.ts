@@ -7,6 +7,7 @@ describe('TagService', () => {
   let tagService: TagService;
 
   beforeEach(async () => {
+    TagService.resetInstance();
     tagService = new TagService();
     await db.delete();
     await db.open();
@@ -14,6 +15,7 @@ describe('TagService', () => {
 
   afterEach(async () => {
     await db.delete();
+    TagService.resetInstance();
   });
 
   describe('createTag', () => {
