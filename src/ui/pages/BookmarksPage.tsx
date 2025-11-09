@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
-import { Layout } from '../components/Layout';
-import { BookmarkList } from '../components/BookmarkList';
 import { BookmarkDetailModal } from '../components/BookmarkDetailModal';
+import { BookmarkList } from '../components/BookmarkList';
+import { Layout } from '../components/Layout';
+
 import type { Bookmark } from '@/types/bookmark';
+
 import { BookmarkService } from '@/services/BookmarkService';
 
 const bookmarkService = new BookmarkService();
@@ -35,7 +37,7 @@ export const BookmarksPage: React.FC = () => {
         `Synced: ${result.added} added, ${result.removed} removed`
       );
       await loadBookmarks();
-    } catch (error) {
+    } catch {
       setSyncMessage('Sync failed. Please try again.');
     } finally {
       setIsSyncing(false);
@@ -88,7 +90,10 @@ export const BookmarksPage: React.FC = () => {
         {bookmarks.length} bookmark{bookmarks.length !== 1 ? 's' : ''}
       </div>
 
-      <BookmarkList bookmarks={bookmarks} onBookmarkClick={handleBookmarkClick} />
+      <BookmarkList
+        bookmarks={bookmarks}
+        onBookmarkClick={handleBookmarkClick}
+      />
 
       {selectedBookmark && (
         <BookmarkDetailModal

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
+
 import { TagService } from '@/services/TagService';
 
 const tagService = new TagService();
@@ -38,7 +39,7 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
     if (url.length <= maxLength) {
       return url;
     }
-    return url.substring(0, maxLength) + '...';
+    return `${url.substring(0, maxLength)}...`;
   };
 
   if (bookmarks.length === 0) {
@@ -58,7 +59,7 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
   return (
     <div className="bookmarks-list">
       {bookmarks.map((bookmark) => {
-        const tags = bookmarkTags.get(bookmark.id) || [];
+        const tags = bookmarkTags.get(bookmark.id) ?? [];
 
         return (
           <div
@@ -89,7 +90,9 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
                   <span className="hidden-badge">Hidden</span>
                 )}
               </div>
-              <div className="bookmark-url">{truncateUrl(bookmark.url, 50)}</div>
+              <div className="bookmark-url">
+                {truncateUrl(bookmark.url, 50)}
+              </div>
               {tags.length > 0 && (
                 <div className="bookmark-tags">
                   {tags.slice(0, 3).map((tag) => (

@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill';
 
 import type { Bookmark } from '@/types/bookmark';
+
 import { db } from '@/storage/database';
 
 export class BookmarkService {

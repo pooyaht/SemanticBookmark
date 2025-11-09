@@ -1,7 +1,7 @@
 import Dexie from 'dexie';
 
-import type { Tag, BookmarkTag } from '@/types/tag';
 import type { Bookmark } from '@/types/bookmark';
+import type { Tag, BookmarkTag } from '@/types/tag';
 import type { Table } from 'dexie';
 
 import { STORAGE_CONFIG } from '@/constants/config';
