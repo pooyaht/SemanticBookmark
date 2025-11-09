@@ -50,6 +50,18 @@ export class BookmarkService {
     });
   }
 
+  async updateTitle(id: string, title: string): Promise<void> {
+    const bookmark = await this.getBookmark(id);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${id}" not found`);
+    }
+
+    await db.bookmarks.update(id, {
+      title,
+      lastModified: new Date(),
+    });
+  }
+
   async updateUserDescription(id: string, description: string): Promise<void> {
     const bookmark = await this.getBookmark(id);
     if (!bookmark) {

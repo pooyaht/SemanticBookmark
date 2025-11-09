@@ -21,6 +21,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const [title, setTitle] = useState(bookmark.title);
   const [userDescription, setUserDescription] = useState(
     bookmark.userDescription ?? ''
   );
@@ -46,6 +47,10 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     setIsSaving(true);
 
     try {
+      if (title !== bookmark.title) {
+        await bookmarkService.updateTitle(bookmark.id, title);
+      }
+
       if (userDescription !== bookmark.userDescription) {
         await bookmarkService.updateUserDescription(
           bookmark.id,
@@ -151,7 +156,12 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
         <div className="bookmark-modal-body">
           <div className="form-group">
             <label className="form-label">Title</label>
-            <div className="form-value">{bookmark.title}</div>
+            <input
+              type="text"
+              className="form-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
           </div>
 
           <div className="form-group">
