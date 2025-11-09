@@ -5,7 +5,7 @@ import type { Tag } from '@/types/tag';
 
 import { BookmarkService } from '@/services/BookmarkService';
 import { TagService } from '@/services/TagService';
-import { TagAssignmentSource } from '@/types/tag';
+import { TagAssignmentSource, TagSource } from '@/types/tag';
 
 const bookmarkService = new BookmarkService();
 const tagService = new TagService();
@@ -105,6 +105,24 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     (tag) => !assignedTags.some((t) => t.id === tag.id)
   );
 
+  const groupedTags = {
+    [TagSource.DEFAULT]: unassignedTags.filter(
+      (t) => t.source === TagSource.DEFAULT
+    ),
+    [TagSource.USER]: unassignedTags.filter((t) => t.source === TagSource.USER),
+    [TagSource.FOLDER]: unassignedTags.filter(
+      (t) => t.source === TagSource.FOLDER
+    ),
+    [TagSource.LLM]: unassignedTags.filter((t) => t.source === TagSource.LLM),
+  };
+
+  const tagSourceLabels = {
+    [TagSource.DEFAULT]: 'Default Tags',
+    [TagSource.USER]: 'User Tags',
+    [TagSource.FOLDER]: 'Folder Tags',
+    [TagSource.LLM]: 'AI Tags',
+  };
+
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -156,20 +174,37 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
                 </span>
               ))}
             </div>
-            <select
-              className="form-input"
-              onChange={(e) => void handleSelectTag(e)}
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select a tag to add...
-              </option>
-              {unassignedTags.map((tag) => (
-                <option key={tag.id} value={tag.id}>
-                  {tag.name}
+            {unassignedTags.length > 0 ? (
+              <select
+                className="form-input"
+                onChange={(e) => void handleSelectTag(e)}
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  Select a tag to add...
                 </option>
-              ))}
-            </select>
+                {Object.entries(groupedTags).map(([source, tags]) =>
+                  tags.length > 0 ? (
+                    <optgroup
+                      key={source}
+                      label={tagSourceLabels[source as TagSource]}
+                    >
+                      {tags.map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          {tag.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null
+                )}
+              </select>
+            ) : (
+              <div className="form-hint">
+                {availableTags.length === 0
+                  ? 'No tags available. Create tags in the Tags page first.'
+                  : 'All available tags have been assigned.'}
+              </div>
+            )}
           </div>
 
           {bookmark.aiSummary && (
