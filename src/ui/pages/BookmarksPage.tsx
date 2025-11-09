@@ -67,6 +67,7 @@ export const BookmarksPage: React.FC = () => {
         `Synced: ${result.added} added, ${result.removed} removed`
       );
       await loadBookmarks();
+      await loadTags();
     } catch {
       setSyncMessage('Sync failed. Please try again.');
     } finally {
@@ -85,6 +86,7 @@ export const BookmarksPage: React.FC = () => {
 
   const handleSaveBookmark = async () => {
     await loadBookmarks();
+    await loadTags();
     setSelectedBookmark(null);
   };
 
