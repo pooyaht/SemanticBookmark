@@ -26,8 +26,6 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   );
   const [assignedTags, setAssignedTags] = useState<Tag[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [tagInput, setTagInput] = useState('');
-  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -82,8 +80,6 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     );
 
     setAssignedTags([...assignedTags, tag]);
-    setTagInput('');
-    setShowTagSuggestions(false);
   };
 
   const handleRemoveTag = async (tagId: string) => {
@@ -91,10 +87,22 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     setAssignedTags(assignedTags.filter((t) => t.id !== tagId));
   };
 
-  const filteredTags = availableTags.filter(
-    (tag) =>
-      tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
-      !assignedTags.some((t) => t.id === tag.id)
+  const handleSelectTag = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const tagId = e.target.value;
+    if (!tagId) {
+      return;
+    }
+
+    const tag = availableTags.find((t) => t.id === tagId);
+    if (tag && !assignedTags.some((t) => t.id === tag.id)) {
+      await handleAddTag(tag);
+    }
+
+    e.target.value = '';
+  };
+
+  const unassignedTags = availableTags.filter(
+    (tag) => !assignedTags.some((t) => t.id === tag.id)
   );
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -148,32 +156,20 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
                 </span>
               ))}
             </div>
-            <div className="tag-input-wrapper">
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Type to add tags..."
-                value={tagInput}
-                onChange={(e) => {
-                  setTagInput(e.target.value);
-                  setShowTagSuggestions(e.target.value.length > 0);
-                }}
-                onFocus={() => setShowTagSuggestions(tagInput.length > 0)}
-              />
-              {showTagSuggestions && filteredTags.length > 0 && (
-                <div className="tag-suggestions">
-                  {filteredTags.slice(0, 5).map((tag) => (
-                    <div
-                      key={tag.id}
-                      className="tag-suggestion-item"
-                      onClick={() => void handleAddTag(tag)}
-                    >
-                      {tag.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <select
+              className="form-input"
+              onChange={(e) => void handleSelectTag(e)}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select a tag to add...
+              </option>
+              {unassignedTags.map((tag) => (
+                <option key={tag.id} value={tag.id}>
+                  {tag.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {bookmark.aiSummary && (

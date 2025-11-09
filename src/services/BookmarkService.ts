@@ -128,8 +128,11 @@ export class BookmarkService {
 
     const ROOT_FOLDERS = [
       'Bookmarks Bar',
+      'Bookmarks Menu',
+      'Bookmarks Toolbar',
       'Other Bookmarks',
       'Mobile Bookmarks',
+      'Unfiled Bookmarks',
     ];
 
     const traverse = (
@@ -138,7 +141,11 @@ export class BookmarkService {
     ) => {
       for (const node of nodes) {
         const isRootFolder = ROOT_FOLDERS.includes(node.title ?? '');
-        const currentPath = isRootFolder ? [] : [...path, node.title ?? ''];
+        const currentPath = isRootFolder
+          ? []
+          : node.title
+            ? [...path, node.title]
+            : path;
 
         if (node.url) {
           const folderPath =
