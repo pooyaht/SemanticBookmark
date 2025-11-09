@@ -4,6 +4,7 @@ export interface Bookmark {
   title: string;
   version: number;
   hidden: boolean;
+  folderPath?: string;
   aiSummary?: string;
   userDescription?: string;
   favicon?: string;

@@ -1,10 +1,19 @@
 import browser from 'webextension-polyfill';
 
+import { TagService } from './TagService';
+
 import type { Bookmark } from '@/types/bookmark';
 
 import { db } from '@/storage/database';
+import { TagSource, TagAssignmentSource } from '@/types/tag';
 
 export class BookmarkService {
+  private tagService: TagService;
+
+  constructor() {
+    this.tagService = new TagService();
+  }
+
   async getAllBookmarks(): Promise<Bookmark[]> {
     return await db.bookmarks.toArray();
   }
@@ -71,6 +80,13 @@ export class BookmarkService {
       if (!existingBookmarkIds.has(browserBookmark.id)) {
         await db.bookmarks.add(browserBookmark);
         addedCount++;
+
+        if (browserBookmark.folderPath) {
+          await this.assignFolderTag(
+            browserBookmark.id,
+            browserBookmark.folderPath
+          );
+        }
       }
     }
 
@@ -91,26 +107,57 @@ export class BookmarkService {
     });
   }
 
+  private async assignFolderTag(
+    bookmarkId: string,
+    folderPath: string
+  ): Promise<void> {
+    let tag = await this.tagService.getTagByName(folderPath);
+
+    tag ??= await this.tagService.createTag(folderPath, TagSource.FOLDER);
+
+    await this.tagService.assignTagToBookmark(
+      bookmarkId,
+      tag.id,
+      TagAssignmentSource.FOLDER_SYNC
+    );
+  }
+
   private async fetchBrowserBookmarks(): Promise<Bookmark[]> {
     const bookmarkTree = await browser.bookmarks.getTree();
     const bookmarks: Bookmark[] = [];
 
-    const traverse = (nodes: browser.Bookmarks.BookmarkTreeNode[]) => {
+    const ROOT_FOLDERS = [
+      'Bookmarks Bar',
+      'Other Bookmarks',
+      'Mobile Bookmarks',
+    ];
+
+    const traverse = (
+      nodes: browser.Bookmarks.BookmarkTreeNode[],
+      path: string[] = []
+    ) => {
       for (const node of nodes) {
+        const isRootFolder = ROOT_FOLDERS.includes(node.title ?? '');
+        const currentPath = isRootFolder ? [] : [...path, node.title ?? ''];
+
         if (node.url) {
+          const folderPath =
+            currentPath.length > 0 ? currentPath.join('/') : undefined;
+
           bookmarks.push({
             id: node.id,
             url: node.url,
             title: node.title || node.url,
             version: 0,
             hidden: false,
+            folderPath,
             dateAdded: node.dateAdded ? new Date(node.dateAdded) : new Date(),
             lastModified: new Date(),
           });
         }
 
         if (node.children) {
-          traverse(node.children);
+          traverse(node.children, currentPath);
         }
       }
     };
