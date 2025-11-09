@@ -86,7 +86,6 @@ export const BookmarksPage: React.FC = () => {
 
   const handleSaveBookmark = async () => {
     await loadBookmarks();
-    await loadTags();
     setSelectedBookmark(null);
   };
 
