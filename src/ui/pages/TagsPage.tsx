@@ -9,7 +9,7 @@ import type { Tag } from '@/types/tag';
 import { TagService } from '@/services/TagService';
 import { TagSource } from '@/types/tag';
 
-const tagService = new TagService();
+const tagService = TagService.getInstance();
 
 export const TagsPage: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>([]);

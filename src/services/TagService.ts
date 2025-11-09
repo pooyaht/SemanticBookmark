@@ -5,8 +5,24 @@ import { db } from '@/storage/database';
 import { TagSource, TagAssignmentSource } from '@/types/tag';
 
 export class TagService {
+  private static instance: TagService;
+
   private tagCache: Map<string, Tag> = new Map();
   private cacheInitialized = false;
+
+  static getInstance(): TagService {
+    if (!TagService.instance) {
+      TagService.instance = new TagService();
+    }
+    return TagService.instance;
+  }
+
+  static resetInstance(): void {
+    if (TagService.instance) {
+      TagService.instance.invalidateCache();
+      TagService.instance = undefined as unknown as TagService;
+    }
+  }
 
   private async ensureCacheInitialized(): Promise<void> {
     if (!this.cacheInitialized) {

@@ -7,8 +7,8 @@ import { BookmarkService } from '@/services/BookmarkService';
 import { TagService } from '@/services/TagService';
 import { TagAssignmentSource, TagSource } from '@/types/tag';
 
-const bookmarkService = new BookmarkService();
-const tagService = new TagService();
+const bookmarkService = BookmarkService.getInstance();
+const tagService = TagService.getInstance();
 
 interface BookmarkDetailModalProps {
   bookmark: Bookmark;

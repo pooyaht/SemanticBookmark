@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill';
 
 import { BookmarkService } from '@/services/BookmarkService';
+import { TagService } from '@/services/TagService';
 import { db } from '@/storage/database';
 
 jest.mock('webextension-polyfill', () => ({
@@ -13,6 +14,8 @@ describe('BookmarkService', () => {
   let bookmarkService: BookmarkService;
 
   beforeEach(async () => {
+    TagService.resetInstance();
+    BookmarkService.resetInstance();
     await db.delete();
     await db.open();
     bookmarkService = new BookmarkService();
@@ -20,6 +23,8 @@ describe('BookmarkService', () => {
 
   afterEach(async () => {
     await db.delete();
+    TagService.resetInstance();
+    BookmarkService.resetInstance();
   });
 
   describe('Folder Path Handling', () => {

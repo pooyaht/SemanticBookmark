@@ -10,8 +10,8 @@ import type { Tag } from '@/types/tag';
 import { BookmarkService } from '@/services/BookmarkService';
 import { TagService } from '@/services/TagService';
 
-const bookmarkService = new BookmarkService();
-const tagService = new TagService();
+const bookmarkService = BookmarkService.getInstance();
+const tagService = TagService.getInstance();
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden';
 

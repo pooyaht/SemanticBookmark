@@ -8,10 +8,23 @@ import { db } from '@/storage/database';
 import { TagSource, TagAssignmentSource } from '@/types/tag';
 
 export class BookmarkService {
+  private static instance: BookmarkService;
+
   private tagService: TagService;
 
   constructor() {
-    this.tagService = new TagService();
+    this.tagService = TagService.getInstance();
+  }
+
+  static getInstance(): BookmarkService {
+    if (!BookmarkService.instance) {
+      BookmarkService.instance = new BookmarkService();
+    }
+    return BookmarkService.instance;
+  }
+
+  static resetInstance(): void {
+    BookmarkService.instance = undefined as unknown as BookmarkService;
   }
 
   async getAllBookmarks(): Promise<Bookmark[]> {

@@ -5,7 +5,7 @@ import type { Tag } from '@/types/tag';
 
 import { TagService } from '@/services/TagService';
 
-const tagService = new TagService();
+const tagService = TagService.getInstance();
 
 interface BookmarkListProps {
   bookmarks: Bookmark[];
