@@ -26,6 +26,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     bookmark.userDescription ?? ''
   );
   const [assignedTags, setAssignedTags] = useState<Tag[]>([]);
+  const [originalTagIds, setOriginalTagIds] = useState<Set<string>>(new Set());
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -38,6 +39,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const loadData = async () => {
     const tags = await tagService.getBookmarkTags(bookmark.id);
     setAssignedTags(tags);
+    setOriginalTagIds(new Set(tags.map((t) => t.id)));
 
     const allTags = await tagService.getAllTags();
     setAvailableTags(allTags);
@@ -58,6 +60,24 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
         );
       }
 
+      const currentTagIds = new Set(assignedTags.map((t) => t.id));
+      const tagsToAdd = assignedTags.filter((t) => !originalTagIds.has(t.id));
+      const tagsToRemove = Array.from(originalTagIds).filter(
+        (id) => !currentTagIds.has(id)
+      );
+
+      for (const tag of tagsToAdd) {
+        await tagService.assignTagToBookmark(
+          bookmark.id,
+          tag.id,
+          TagAssignmentSource.USER
+        );
+      }
+
+      for (const tagId of tagsToRemove) {
+        await tagService.removeTagFromBookmark(bookmark.id, tagId);
+      }
+
       onSave();
     } catch {
       alert('Failed to save bookmark. Please try again.');
@@ -75,24 +95,17 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     onSave();
   };
 
-  const handleAddTag = async (tag: Tag) => {
+  const handleAddTag = (tag: Tag) => {
     if (assignedTags.some((t) => t.id === tag.id)) {
       return;
     }
-
-    await tagService.assignTagToBookmark(
-      bookmark.id,
-      tag.id,
-      TagAssignmentSource.USER
-    );
 
     setAssignedTags([...assignedTags, tag]);
     setTagInput('');
     setShowSuggestions(false);
   };
 
-  const handleRemoveTag = async (tagId: string) => {
-    await tagService.removeTagFromBookmark(bookmark.id, tagId);
+  const handleRemoveTag = (tagId: string) => {
     setAssignedTags(assignedTags.filter((t) => t.id !== tagId));
   };
 
@@ -184,7 +197,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
                   {tag.name}
                   <button
                     className="remove-tag-btn"
-                    onClick={() => void handleRemoveTag(tag.id)}
+                    onClick={() => handleRemoveTag(tag.id)}
                   >
                     ×
                   </button>
@@ -218,7 +231,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
                               <div
                                 key={tag.id}
                                 className="tag-suggestion-item"
-                                onClick={() => void handleAddTag(tag)}
+                                onClick={() => handleAddTag(tag)}
                               >
                                 {tag.name}
                               </div>

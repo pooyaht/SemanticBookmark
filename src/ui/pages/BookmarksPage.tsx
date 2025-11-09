@@ -80,9 +80,7 @@ export const BookmarksPage: React.FC = () => {
     setSelectedBookmark(bookmark);
   };
 
-  const handleCloseModal = async () => {
-    await loadBookmarks();
-    await loadTags();
+  const handleCloseModal = () => {
     setSelectedBookmark(null);
   };
 
@@ -275,7 +273,7 @@ export const BookmarksPage: React.FC = () => {
       {selectedBookmark && (
         <BookmarkDetailModal
           bookmark={selectedBookmark}
-          onClose={() => void handleCloseModal()}
+          onClose={handleCloseModal}
           onSave={() => void handleSaveBookmark()}
         />
       )}
