@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
 import type { Bookmark } from '@/types/bookmark';
+import type { Content, RelatedPage } from '@/types/content';
 import type { Tag } from '@/types/tag';
 
 import { BookmarkService } from '@/services/BookmarkService';
 import { TagService } from '@/services/TagService';
+import { ContentType } from '@/types/content';
 import { TagAssignmentSource, TagSource } from '@/types/tag';
 
 const bookmarkService = BookmarkService.getInstance();
@@ -31,6 +33,10 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [content, setContent] = useState<Content[]>([]);
+  const [relatedPages, setRelatedPages] = useState<RelatedPage[]>([]);
+  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
     void loadData();
@@ -43,6 +49,14 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
 
     const allTags = await tagService.getAllTags();
     setAvailableTags(allTags);
+
+    const bookmarkContent = await bookmarkService.getBookmarkContent(
+      bookmark.id
+    );
+    setContent(bookmarkContent);
+
+    const pages = await bookmarkService.getRelatedPages(bookmark.id);
+    setRelatedPages(pages);
   };
 
   const handleSave = async () => {
@@ -93,6 +107,21 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
       await bookmarkService.hideBookmark(bookmark.id);
     }
     onSave();
+  };
+
+  const handleCrawl = async () => {
+    setIsCrawling(true);
+    try {
+      await bookmarkService.crawlBookmark(bookmark.id);
+      await loadData();
+      setShowContent(true);
+    } catch (error) {
+      alert(
+        `Failed to crawl bookmark: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    } finally {
+      setIsCrawling(false);
+    }
   };
 
   const handleAddTag = (tag: Tag) => {
@@ -276,6 +305,101 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
               rows={4}
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Content Crawling</label>
+            <div className="crawl-controls">
+              <button
+                className="btn btn-primary btn-small"
+                onClick={() => void handleCrawl()}
+                disabled={isCrawling}
+              >
+                {isCrawling ? 'Fetching Content...' : 'Fetch Content'}
+              </button>
+              {content.length > 0 && (
+                <div className="crawl-status">
+                  <span className="status-badge success">
+                    Content crawled ({content.length} page
+                    {content.length > 1 ? 's' : ''})
+                  </span>
+                  {content[0] && (
+                    <span className="crawl-date">
+                      Last crawled:{' '}
+                      {new Date(content[0].fetchedAt).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              )}
+              {content.length === 0 && !isCrawling && (
+                <span className="status-badge neutral">Not crawled yet</span>
+              )}
+            </div>
+            {content.length > 0 && (
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => setShowContent(!showContent)}
+                style={{ marginTop: '8px' }}
+              >
+                {showContent ? 'Hide Content Preview' : 'Show Content Preview'}
+              </button>
+            )}
+          </div>
+
+          {showContent && content.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Content Preview</label>
+              {content.map((c) => (
+                <div key={c.url} className="content-preview">
+                  <div className="content-header">
+                    <span className="content-type-badge">
+                      {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
+                    </span>
+                    <strong className="content-title">{c.title}</strong>
+                  </div>
+                  {c.description && (
+                    <p className="content-description">{c.description}</p>
+                  )}
+                  <p className="content-text">
+                    {c.content.substring(0, 300)}
+                    {c.content.length > 300 ? '...' : ''}
+                  </p>
+                  <a
+                    href={c.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="content-url"
+                  >
+                    {c.url}
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {relatedPages.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">
+                Related Pages ({relatedPages.length})
+              </label>
+              <div className="related-pages-list">
+                {relatedPages.map((page) => (
+                  <div key={page.id} className="related-page-item">
+                    <a
+                      href={page.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="related-page-link"
+                    >
+                      {page.title || page.url}
+                    </a>
+                    <span className="related-page-meta">
+                      Depth {page.depth}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Embedding Status</label>

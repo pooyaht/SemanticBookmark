@@ -13,5 +13,5 @@ export const INDEXING_CONFIG = {
 
 export const STORAGE_CONFIG = {
   DB_NAME: 'SemanticBookmarkDB',
-  DB_VERSION: 2,
+  DB_VERSION: 3,
 };
