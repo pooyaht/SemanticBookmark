@@ -3,10 +3,8 @@
   "name": "Semantic Bookmark Search",
   "version": "0.1.0",
   "description": "Search your bookmarks semantically using AI-powered embeddings",
-  "permissions": [
-    "bookmarks",
-    "storage"
-  ],
+  "permissions": ["bookmarks", "storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
   "action": {
     "default_title": "Semantic Bookmark Search",
     "default_popup": "popup.html"

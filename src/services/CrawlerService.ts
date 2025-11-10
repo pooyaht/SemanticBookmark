@@ -22,7 +22,12 @@ export class CrawlerService {
   }
 
   async crawlBookmark(bookmarkId: string, bookmarkUrl: string): Promise<void> {
+    console.log('[CrawlerService] Starting crawl:', {
+      bookmarkId,
+      bookmarkUrl,
+    });
     const settings = await settingsService.getCrawlerSettings();
+    console.log('[CrawlerService] Crawler settings:', settings);
 
     const primaryContent = await this.fetchAndExtractContent(
       bookmarkUrl,
@@ -32,17 +37,36 @@ export class CrawlerService {
     );
 
     if (!primaryContent) {
+      console.error(
+        '[CrawlerService] Failed to fetch primary content for:',
+        bookmarkUrl
+      );
       throw new Error('Failed to fetch bookmark content');
     }
 
+    console.log('[CrawlerService] Primary content extracted:', {
+      url: primaryContent.url,
+      title: primaryContent.title,
+      contentLength: primaryContent.content.length,
+      linksCount: primaryContent.links.length,
+    });
+
     await db.content.put(primaryContent);
+    console.log('[CrawlerService] Primary content stored successfully');
 
     if (settings.defaultDepth > 0 && primaryContent.links.length > 0) {
+      console.log(
+        `[CrawlerService] Starting related pages crawl (depth: ${settings.defaultDepth})`
+      );
       await this.crawlRelatedPages(
         bookmarkId,
         bookmarkUrl,
         primaryContent.links,
         settings
+      );
+    } else {
+      console.log(
+        '[CrawlerService] Skipping related pages crawl (depth=0 or no links)'
       );
     }
   }
@@ -94,21 +118,36 @@ export class CrawlerService {
     settings: CrawlerSettings
   ): Promise<Content | null> {
     try {
+      console.log(`[CrawlerService] Fetching content for ${type}:`, url);
       await this.applyRateLimit(settings.rateLimitMs);
 
       const html = await this.fetchHTML(url);
       if (!html) {
+        console.error(`[CrawlerService] No HTML received for:`, url);
         return null;
       }
 
+      console.log(
+        `[CrawlerService] HTML fetched successfully (${html.length} bytes)`
+      );
+
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
+      console.log(`[CrawlerService] HTML parsed successfully`);
 
       const title = this.extractTitle(doc);
       const description = this.extractDescription(doc);
       const content = this.extractTextContent(doc);
       const links = this.extractLinks(doc, url);
       const contentHash = await this.calculateHash(content);
+
+      console.log(`[CrawlerService] Content extracted:`, {
+        title,
+        hasDescription: !!description,
+        contentLength: content.length,
+        linksCount: links.length,
+        contentHash: `${contentHash.substring(0, 10)}...`,
+      });
 
       return {
         bookmarkId,
@@ -122,26 +161,59 @@ export class CrawlerService {
         fetchedAt: Date.now(),
       };
     } catch (error) {
-      console.error(`Failed to fetch content from ${url}:`, error);
+      console.error(
+        `[CrawlerService] Exception in fetchAndExtractContent for ${url}:`,
+        error
+      );
+      if (error instanceof Error) {
+        console.error('[CrawlerService] Error stack:', error.stack);
+      }
       return null;
     }
   }
 
   private async fetchHTML(url: string): Promise<string | null> {
     try {
+      console.log(`[CrawlerService] Making HTTP request to:`, url);
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; SemanticBookmarkBot/1.0)',
         },
       });
 
+      console.log(`[CrawlerService] HTTP response:`, {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+        url: response.url,
+      });
+
       if (!response.ok) {
+        console.error(
+          `[CrawlerService] HTTP error ${response.status}: ${response.statusText}`
+        );
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return await response.text();
+      const html = await response.text();
+      console.log(
+        `[CrawlerService] Successfully fetched ${html.length} bytes of HTML`
+      );
+      return html;
     } catch (error) {
-      console.error(`Failed to fetch ${url}:`, error);
+      console.error(`[CrawlerService] Fetch failed for ${url}:`, error);
+      if (error instanceof TypeError) {
+        console.error(
+          '[CrawlerService] Network error (likely CORS or network issue)'
+        );
+      }
+      if (error instanceof Error) {
+        console.error('[CrawlerService] Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        });
+      }
       return null;
     }
   }

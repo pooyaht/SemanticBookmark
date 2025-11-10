@@ -111,13 +111,21 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
 
   const handleCrawl = async () => {
     setIsCrawling(true);
+    console.log(
+      '[BookmarkDetailModal] Starting crawl for bookmark:',
+      bookmark.id
+    );
     try {
       await bookmarkService.crawlBookmark(bookmark.id);
+      console.log('[BookmarkDetailModal] Crawl completed successfully');
       await loadData();
       setShowContent(true);
     } catch (error) {
+      console.error('[BookmarkDetailModal] Crawl failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       alert(
-        `Failed to crawl bookmark: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to crawl bookmark: ${errorMessage}\n\nCheck the browser console for detailed logs.`
       );
     } finally {
       setIsCrawling(false);
