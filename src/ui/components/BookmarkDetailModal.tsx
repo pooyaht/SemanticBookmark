@@ -37,6 +37,9 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [content, setContent] = useState<Content[]>([]);
   const [relatedPages, setRelatedPages] = useState<RelatedPage[]>([]);
   const [showContent, setShowContent] = useState(false);
+  const [expandedContent, setExpandedContent] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     void loadData();
@@ -130,6 +133,18 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     } finally {
       setIsCrawling(false);
     }
+  };
+
+  const toggleContentExpansion = (url: string) => {
+    setExpandedContent((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(url)) {
+        newSet.delete(url);
+      } else {
+        newSet.add(url);
+      }
+      return newSet;
+    });
   };
 
   const handleAddTag = (tag: Tag) => {
@@ -356,31 +371,45 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
           {showContent && content.length > 0 && (
             <div className="form-group">
               <label className="form-label">Content Preview</label>
-              {content.map((c) => (
-                <div key={c.url} className="content-preview">
-                  <div className="content-header">
-                    <span className="content-type-badge">
-                      {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
-                    </span>
-                    <strong className="content-title">{c.title}</strong>
+              {content.map((c) => {
+                const isExpanded = expandedContent.has(c.url);
+                const shouldTruncate = c.content.length > 300;
+                return (
+                  <div key={c.url} className="content-preview">
+                    <div className="content-header">
+                      <span className="content-type-badge">
+                        {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
+                      </span>
+                      <strong className="content-title">{c.title}</strong>
+                    </div>
+                    {c.description && (
+                      <p className="content-description">{c.description}</p>
+                    )}
+                    <div className="content-text">
+                      {isExpanded || !shouldTruncate
+                        ? c.content
+                        : `${c.content.substring(0, 300)}...`}
+                    </div>
+                    {shouldTruncate && (
+                      <button
+                        className="btn btn-secondary btn-small"
+                        onClick={() => toggleContentExpansion(c.url)}
+                        style={{ marginTop: '8px' }}
+                      >
+                        {isExpanded ? 'Show Less' : 'Read More'}
+                      </button>
+                    )}
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="content-url"
+                    >
+                      {c.url}
+                    </a>
                   </div>
-                  {c.description && (
-                    <p className="content-description">{c.description}</p>
-                  )}
-                  <p className="content-text">
-                    {c.content.substring(0, 300)}
-                    {c.content.length > 300 ? '...' : ''}
-                  </p>
-                  <a
-                    href={c.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="content-url"
-                  >
-                    {c.url}
-                  </a>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
