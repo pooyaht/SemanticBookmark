@@ -6,9 +6,8 @@ export interface EmbeddingProvider {
   type: ProviderType;
   endpoint: string;
   modelName: string;
-  dimensions: number;
-  inputPrefix?: string;
-  inputSuffix?: string;
+  documentPrefix?: string;
+  documentSuffix?: string;
   isActive: boolean;
   createdAt: Date;
   lastUsedAt?: Date;
@@ -20,7 +19,6 @@ export interface Embedding {
   bookmarkId: string;
   providerId: string;
   embedding: Float32Array;
-  dimension: number;
   createdAt: Date;
   modelName: string;
 }
@@ -44,11 +42,9 @@ export const DEFAULT_AI_PROVIDER_SETTINGS: AIProviderSettings = {
 
 export interface ProviderTestResult {
   success: boolean;
-  dimensions?: number;
   error?: string;
 }
 
 export interface EmbeddingGenerationResult {
   embedding: number[];
-  dimensions: number;
 }

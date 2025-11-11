@@ -39,9 +39,11 @@ export class EmbeddingProviderService {
       throw new Error(`Provider with ID "${provider.id}" already exists`);
     }
 
+    const hasActiveProvider = await this.getActiveProvider();
+
     const newProvider: EmbeddingProvider = {
       ...provider,
-      isActive: false,
+      isActive: !hasActiveProvider,
       isConnected: false,
       createdAt: new Date(),
     };
@@ -113,8 +115,8 @@ export class EmbeddingProviderService {
       provider.type,
       provider.endpoint,
       provider.modelName,
-      provider.inputPrefix,
-      provider.inputSuffix
+      provider.documentPrefix,
+      provider.documentSuffix
     );
 
     await db.embeddingProviders.update(id, {

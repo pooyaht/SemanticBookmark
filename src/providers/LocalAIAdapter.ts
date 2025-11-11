@@ -45,7 +45,6 @@ export class LocalAIAdapter extends BaseProviderAdapter {
 
       return {
         embedding,
-        dimensions: embedding.length,
       };
     } catch (error) {
       throw new Error(
@@ -61,7 +60,7 @@ export class LocalAIAdapter extends BaseProviderAdapter {
     suffix?: string
   ): Promise<ProviderTestResult> {
     try {
-      const result = await this.generateEmbedding(
+      await this.generateEmbedding(
         'test connection',
         endpoint,
         model,
@@ -71,7 +70,6 @@ export class LocalAIAdapter extends BaseProviderAdapter {
 
       return {
         success: true,
-        dimensions: result.dimensions,
       };
     } catch (error) {
       return {

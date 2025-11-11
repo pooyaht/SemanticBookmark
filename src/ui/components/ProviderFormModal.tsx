@@ -25,18 +25,14 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [providerType, setProviderType] = useState<ProviderType>('localai');
   const [endpoint, setEndpoint] = useState('http://localhost:8080');
   const [modelName, setModelName] = useState('');
-  const [dimensions, setDimensions] = useState<number | ''>('');
-  const [inputPrefix, setInputPrefix] = useState('');
-  const [inputSuffix, setInputSuffix] = useState('');
+  const [documentPrefix, setDocumentPrefix] = useState('');
+  const [documentSuffix, setDocumentSuffix] = useState('');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
     message: string;
   } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [autoDetectedDimensions, setAutoDetectedDimensions] = useState<
-    number | null
-  >(null);
 
   useEffect(() => {
     if (isOpen && editingProviderId) {
@@ -57,9 +53,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setProviderType(provider.type);
       setEndpoint(provider.endpoint);
       setModelName(provider.modelName);
-      setDimensions(provider.dimensions);
-      setInputPrefix(provider.inputPrefix ?? '');
-      setInputSuffix(provider.inputSuffix ?? '');
+      setDocumentPrefix(provider.documentPrefix ?? '');
+      setDocumentSuffix(provider.documentSuffix ?? '');
     }
   };
 
@@ -68,13 +63,11 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     setProviderType('localai');
     setEndpoint('http://localhost:8080');
     setModelName('');
-    setDimensions('');
-    setInputPrefix('');
-    setInputSuffix('');
+    setDocumentPrefix('');
+    setDocumentSuffix('');
     setTesting(false);
     setTestResult(null);
     setSaving(false);
-    setAutoDetectedDimensions(null);
   };
 
   const handleTestConnection = async () => {
@@ -94,18 +87,14 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
         providerType,
         endpoint,
         modelName,
-        inputPrefix || undefined,
-        inputSuffix || undefined
+        documentPrefix || undefined,
+        documentSuffix || undefined
       );
 
-      if (result.success && result.dimensions) {
-        setAutoDetectedDimensions(result.dimensions);
-        if (!dimensions) {
-          setDimensions(result.dimensions);
-        }
+      if (result.success) {
         setTestResult({
           success: true,
-          message: `Connected successfully! Detected ${result.dimensions} dimensions`,
+          message: 'Connected successfully!',
         });
       } else {
         setTestResult({
@@ -134,11 +123,6 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       return;
     }
 
-    if (!dimensions) {
-      alert('Please enter dimensions or test connection to auto-detect');
-      return;
-    }
-
     if (!/^[a-z0-9_.:/-]+$/.test(providerId)) {
       alert(
         'Provider ID can only contain lowercase letters, numbers, hyphens, underscores, colons, periods, and forward slashes'
@@ -155,9 +139,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           type: providerType,
           endpoint,
           modelName,
-          dimensions: Number(dimensions),
-          inputPrefix: inputPrefix || undefined,
-          inputSuffix: inputSuffix || undefined,
+          documentPrefix: documentPrefix || undefined,
+          documentSuffix: documentSuffix || undefined,
         });
       } else {
         await providerService.createProvider({
@@ -166,9 +149,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           type: providerType,
           endpoint,
           modelName,
-          dimensions: Number(dimensions),
-          inputPrefix: inputPrefix || undefined,
-          inputSuffix: inputSuffix || undefined,
+          documentPrefix: documentPrefix || undefined,
+          documentSuffix: documentSuffix || undefined,
         });
       }
 
@@ -249,54 +231,35 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
 
         <div className="form-group">
           <label className="form-label">
-            Dimensions *
-            <input
-              type="number"
-              className="form-input"
-              value={dimensions}
-              onChange={(e) =>
-                setDimensions(e.target.value ? Number(e.target.value) : '')
-              }
-              placeholder="768"
-            />
-          </label>
-          <p className="form-hint">
-            {autoDetectedDimensions
-              ? `Auto-detected: ${autoDetectedDimensions} dimensions`
-              : 'Test connection to auto-detect'}
-          </p>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Input Prefix (Optional)
+            Document Prefix (Optional)
             <input
               type="text"
               className="form-input"
-              value={inputPrefix}
-              onChange={(e) => setInputPrefix(e.target.value)}
+              value={documentPrefix}
+              onChange={(e) => setDocumentPrefix(e.target.value)}
               placeholder="query: "
             />
           </label>
           <p className="form-hint">
-            Text to prepend to inputs before embedding (e.g., "query: " or
+            Text to prepend to documents before embedding (e.g., "query: " or
             "passage: ")
           </p>
         </div>
 
         <div className="form-group">
           <label className="form-label">
-            Input Suffix (Optional)
+            Document Suffix (Optional)
             <input
               type="text"
               className="form-input"
-              value={inputSuffix}
-              onChange={(e) => setInputSuffix(e.target.value)}
+              value={documentSuffix}
+              onChange={(e) => setDocumentSuffix(e.target.value)}
               placeholder=""
             />
           </label>
           <p className="form-hint">
-            Text to append to inputs before embedding (e.g., special end tokens)
+            Text to append to documents before embedding (e.g., special end
+            tokens)
           </p>
         </div>
 

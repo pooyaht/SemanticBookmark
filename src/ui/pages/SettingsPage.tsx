@@ -534,12 +534,6 @@ export const SettingsPage: React.FC = () => {
                       {activeProvider.modelName}
                     </span>
                   </div>
-                  <div className="provider-detail-item">
-                    <span className="provider-detail-label">Dimensions:</span>
-                    <span className="provider-detail-value">
-                      {activeProvider.dimensions}
-                    </span>
-                  </div>
                   {providerStats[activeProvider.id] && (
                     <div className="provider-detail-item">
                       <span className="provider-detail-label">Indexed:</span>
