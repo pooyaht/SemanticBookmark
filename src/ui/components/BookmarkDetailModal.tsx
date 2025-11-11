@@ -27,6 +27,9 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [userDescription, setUserDescription] = useState(
     bookmark.userDescription ?? ''
   );
+  const [crawlDepth, setCrawlDepth] = useState<number | undefined>(
+    bookmark.crawlDepth
+  );
   const [assignedTags, setAssignedTags] = useState<Tag[]>([]);
   const [originalTagIds, setOriginalTagIds] = useState<Set<string>>(new Set());
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
@@ -75,6 +78,10 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
           bookmark.id,
           userDescription
         );
+      }
+
+      if (crawlDepth !== bookmark.crawlDepth) {
+        await bookmarkService.updateCrawlDepth(bookmark.id, crawlDepth);
       }
 
       const currentTagIds = new Set(assignedTags.map((t) => t.id));
@@ -331,6 +338,28 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
 
           <div className="form-group">
             <label className="form-label">Content Crawling</label>
+            <div className="crawl-depth-selector">
+              <label className="depth-label">
+                Crawl Depth:
+                <select
+                  className="depth-select"
+                  value={crawlDepth ?? ''}
+                  onChange={(e) =>
+                    setCrawlDepth(
+                      e.target.value === '' ? undefined : Number(e.target.value)
+                    )
+                  }
+                >
+                  <option value="">Use default from settings</option>
+                  <option value="0">0 - Original page only</option>
+                  <option value="1">1 - Original + 1 direct link</option>
+                  <option value="2">2 - Original + 2 direct links</option>
+                  <option value="3">3 - Original + 3 direct links</option>
+                  <option value="5">5 - Original + 5 direct links</option>
+                  <option value="10">10 - Original + 10 direct links</option>
+                </select>
+              </label>
+            </div>
             <div className="crawl-controls">
               <button
                 className="btn btn-primary btn-small"

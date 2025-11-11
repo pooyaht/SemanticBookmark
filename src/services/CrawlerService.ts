@@ -23,13 +23,22 @@ export class CrawlerService {
     return CrawlerService.instance;
   }
 
-  async crawlBookmark(bookmarkId: string, bookmarkUrl: string): Promise<void> {
+  async crawlBookmark(
+    bookmarkId: string,
+    bookmarkUrl: string,
+    customDepth?: number
+  ): Promise<void> {
     console.log('[CrawlerService] Starting crawl:', {
       bookmarkId,
       bookmarkUrl,
+      customDepth,
     });
     const settings = await settingsService.getCrawlerSettings();
-    console.log('[CrawlerService] Crawler settings:', settings);
+    const effectiveDepth = customDepth ?? settings.defaultDepth;
+    console.log('[CrawlerService] Crawler settings:', {
+      ...settings,
+      effectiveDepth,
+    });
 
     const primaryContent = await this.fetchAndExtractContent(
       bookmarkUrl,
@@ -56,14 +65,15 @@ export class CrawlerService {
       linksCount: primaryContent.links.length,
     });
 
-    if (settings.defaultDepth > 0 && primaryContent.links.length > 0) {
+    if (effectiveDepth > 0 && primaryContent.links.length > 0) {
       console.log(
-        `[CrawlerService] Starting related pages crawl (depth: ${settings.defaultDepth})`
+        `[CrawlerService] Starting related pages crawl (depth: ${effectiveDepth})`
       );
       await this.crawlRelatedPages(
         bookmarkId,
         bookmarkUrl,
         primaryContent.links,
+        effectiveDepth,
         settings
       );
     } else {
@@ -77,10 +87,11 @@ export class CrawlerService {
     bookmarkId: string,
     baseUrl: string,
     links: string[],
+    depth: number,
     settings: CrawlerSettings
   ): Promise<void> {
     const filteredLinks = this.filterLinks(links, baseUrl, settings);
-    const linksToFetch = filteredLinks.slice(0, settings.defaultDepth);
+    const linksToFetch = filteredLinks.slice(0, depth);
 
     for (const link of linksToFetch) {
       try {

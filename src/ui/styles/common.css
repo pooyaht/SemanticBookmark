@@ -960,6 +960,39 @@ h1 {
   margin: 0;
 }
 
+.crawl-depth-selector {
+  margin-bottom: 12px;
+}
+
+.depth-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.depth-select {
+  padding: 6px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.depth-select:hover {
+  border-color: #4a90e2;
+}
+
+.depth-select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+}
+
 .crawl-controls {
   display: flex;
   flex-wrap: wrap;

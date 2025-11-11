@@ -92,6 +92,21 @@ export class BookmarkService {
     });
   }
 
+  async updateCrawlDepth(
+    id: string,
+    crawlDepth: number | undefined
+  ): Promise<void> {
+    const bookmark = await this.getBookmark(id);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${id}" not found`);
+    }
+
+    await db.bookmarks.update(id, {
+      crawlDepth,
+      lastModified: new Date(),
+    });
+  }
+
   async syncBookmarks(): Promise<{
     added: number;
     removed: number;
@@ -210,7 +225,11 @@ export class BookmarkService {
       throw new Error(`Bookmark with id "${id}" not found`);
     }
 
-    await this.crawlerService.crawlBookmark(id, bookmark.url);
+    await this.crawlerService.crawlBookmark(
+      id,
+      bookmark.url,
+      bookmark.crawlDepth
+    );
   }
 
   async getBookmarkContent(id: string): Promise<Content[]> {

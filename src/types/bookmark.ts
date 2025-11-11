@@ -8,6 +8,7 @@ export interface Bookmark {
   aiSummary?: string;
   userDescription?: string;
   favicon?: string;
+  crawlDepth?: number;
   dateAdded: Date;
   lastModified: Date;
 }
