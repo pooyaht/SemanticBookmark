@@ -1042,6 +1042,43 @@ h1 {
   text-decoration: underline;
 }
 
+.content-preview.content-error {
+  background: #fff3e0;
+  border-color: #ff9800;
+}
+
+.content-error-box {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #ffb74d;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.error-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.error-details {
+  flex: 1;
+}
+
+.error-message {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e65100;
+  margin-bottom: 6px;
+}
+
+.error-hint {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.5;
+}
+
 .related-pages-list {
   display: flex;
   flex-direction: column;

@@ -374,31 +374,54 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
               {content.map((c) => {
                 const isExpanded = expandedContent.has(c.url);
                 const shouldTruncate = c.content.length > 300;
+                const hasError = !!c.fetchError;
+
                 return (
-                  <div key={c.url} className="content-preview">
+                  <div
+                    key={c.url}
+                    className={`content-preview ${hasError ? 'content-error' : ''}`}
+                  >
                     <div className="content-header">
                       <span className="content-type-badge">
                         {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
                       </span>
                       <strong className="content-title">{c.title}</strong>
                     </div>
-                    {c.description && (
-                      <p className="content-description">{c.description}</p>
+
+                    {hasError ? (
+                      <div className="content-error-box">
+                        <div className="error-icon">⚠️</div>
+                        <div className="error-details">
+                          <div className="error-message">{c.fetchError}</div>
+                          <div className="error-hint">
+                            This page could not be fetched. The URL may be
+                            invalid, the server may be down, or you may not have
+                            permission to access it.
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {c.description && (
+                          <p className="content-description">{c.description}</p>
+                        )}
+                        <div className="content-text">
+                          {isExpanded || !shouldTruncate
+                            ? c.content
+                            : `${c.content.substring(0, 300)}...`}
+                        </div>
+                        {shouldTruncate && (
+                          <button
+                            className="btn btn-secondary btn-small"
+                            onClick={() => toggleContentExpansion(c.url)}
+                            style={{ marginTop: '8px' }}
+                          >
+                            {isExpanded ? 'Show Less' : 'Read More'}
+                          </button>
+                        )}
+                      </>
                     )}
-                    <div className="content-text">
-                      {isExpanded || !shouldTruncate
-                        ? c.content
-                        : `${c.content.substring(0, 300)}...`}
-                    </div>
-                    {shouldTruncate && (
-                      <button
-                        className="btn btn-secondary btn-small"
-                        onClick={() => toggleContentExpansion(c.url)}
-                        style={{ marginTop: '8px' }}
-                      >
-                        {isExpanded ? 'Show Less' : 'Read More'}
-                      </button>
-                    )}
+
                     <a
                       href={c.url}
                       target="_blank"

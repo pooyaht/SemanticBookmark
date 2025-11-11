@@ -36,12 +36,15 @@ export class CrawlerService {
       settings
     );
 
-    if (!primaryContent) {
+    await db.content.put(primaryContent);
+    console.log('[CrawlerService] Primary content stored');
+
+    if (primaryContent.fetchError) {
       console.error(
-        '[CrawlerService] Failed to fetch primary content for:',
-        bookmarkUrl
+        '[CrawlerService] Failed to fetch primary content:',
+        primaryContent.fetchError
       );
-      throw new Error('Failed to fetch bookmark content');
+      throw new Error(primaryContent.fetchError);
     }
 
     console.log('[CrawlerService] Primary content extracted:', {
@@ -50,9 +53,6 @@ export class CrawlerService {
       contentLength: primaryContent.content.length,
       linksCount: primaryContent.links.length,
     });
-
-    await db.content.put(primaryContent);
-    console.log('[CrawlerService] Primary content stored successfully');
 
     if (settings.defaultDepth > 0 && primaryContent.links.length > 0) {
       console.log(
@@ -91,9 +91,9 @@ export class CrawlerService {
           settings
         );
 
-        if (relatedContent) {
-          await db.content.put(relatedContent);
+        await db.content.put(relatedContent);
 
+        if (!relatedContent.fetchError) {
           const relatedPage: RelatedPage = {
             id: crypto.randomUUID(),
             bookmarkId,
@@ -104,6 +104,11 @@ export class CrawlerService {
           };
 
           await db.relatedPages.put(relatedPage);
+        } else {
+          console.warn(
+            `[CrawlerService] Skipping related page due to error: ${link}`,
+            relatedContent.fetchError
+          );
         }
       } catch (error) {
         console.error(`Failed to crawl related page ${link}:`, error);
@@ -116,23 +121,41 @@ export class CrawlerService {
     bookmarkId: string,
     type: ContentType,
     settings: CrawlerSettings
-  ): Promise<Content | null> {
+  ): Promise<Content> {
     try {
       console.log(`[CrawlerService] Fetching content for ${type}:`, url);
       await this.applyRateLimit(settings.rateLimitMs);
 
-      const html = await this.fetchHTML(url);
-      if (!html) {
+      const fetchResult = await this.fetchHTML(url);
+      if (fetchResult.error) {
+        console.error(
+          `[CrawlerService] Fetch failed for ${url}:`,
+          fetchResult.error
+        );
+        return this.createErrorContent(
+          bookmarkId,
+          url,
+          type,
+          fetchResult.error
+        );
+      }
+
+      if (!fetchResult.html) {
         console.error(`[CrawlerService] No HTML received for:`, url);
-        return null;
+        return this.createErrorContent(
+          bookmarkId,
+          url,
+          type,
+          'No content received from server'
+        );
       }
 
       console.log(
-        `[CrawlerService] HTML fetched successfully (${html.length} bytes)`
+        `[CrawlerService] HTML fetched successfully (${fetchResult.html.length} bytes)`
       );
 
       const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      const doc = parser.parseFromString(fetchResult.html, 'text/html');
       console.log(`[CrawlerService] HTML parsed successfully`);
 
       const title = this.extractTitle(doc);
@@ -165,14 +188,15 @@ export class CrawlerService {
         `[CrawlerService] Exception in fetchAndExtractContent for ${url}:`,
         error
       );
-      if (error instanceof Error) {
-        console.error('[CrawlerService] Error stack:', error.stack);
-      }
-      return null;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      return this.createErrorContent(bookmarkId, url, type, errorMessage);
     }
   }
 
-  private async fetchHTML(url: string): Promise<string | null> {
+  private async fetchHTML(
+    url: string
+  ): Promise<{ html: string | null; error: string | null }> {
     try {
       console.log(`[CrawlerService] Making HTTP request to:`, url);
       const response = await fetch(url, {
@@ -189,33 +213,96 @@ export class CrawlerService {
       });
 
       if (!response.ok) {
+        const errorMessage = this.getHttpErrorMessage(
+          response.status,
+          response.statusText
+        );
         console.error(
           `[CrawlerService] HTTP error ${response.status}: ${response.statusText}`
         );
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        return { html: null, error: errorMessage };
       }
 
       const html = await response.text();
       console.log(
         `[CrawlerService] Successfully fetched ${html.length} bytes of HTML`
       );
-      return html;
+      return { html, error: null };
     } catch (error) {
       console.error(`[CrawlerService] Fetch failed for ${url}:`, error);
+
+      let errorMessage = 'Network error: Unable to fetch content';
+
       if (error instanceof TypeError) {
         console.error(
           '[CrawlerService] Network error (likely CORS or network issue)'
         );
-      }
-      if (error instanceof Error) {
+        errorMessage =
+          'Network error: Unable to connect to the server. This may be due to CORS restrictions or network connectivity issues.';
+      } else if (error instanceof Error) {
         console.error('[CrawlerService] Error details:', {
           name: error.name,
           message: error.message,
           stack: error.stack,
         });
+        errorMessage = `Network error: ${error.message}`;
       }
-      return null;
+
+      return { html: null, error: errorMessage };
     }
+  }
+
+  private getHttpErrorMessage(status: number, statusText: string): string {
+    switch (status) {
+      case 400:
+        return 'Bad Request: The server could not understand the request';
+      case 401:
+        return 'Unauthorized: Authentication is required to access this page';
+      case 403:
+        return 'Forbidden: You do not have permission to access this page';
+      case 404:
+        return 'Not Found: The requested page does not exist';
+      case 405:
+        return 'Method Not Allowed: The request method is not supported';
+      case 408:
+        return 'Request Timeout: The server timed out waiting for the request';
+      case 429:
+        return 'Too Many Requests: Rate limit exceeded, please try again later';
+      case 500:
+        return 'Internal Server Error: The server encountered an error';
+      case 502:
+        return 'Bad Gateway: The server received an invalid response';
+      case 503:
+        return 'Service Unavailable: The server is temporarily unavailable';
+      case 504:
+        return 'Gateway Timeout: The server timed out';
+      default:
+        if (status >= 400 && status < 500) {
+          return `Client Error (${status}): ${statusText}`;
+        } else if (status >= 500) {
+          return `Server Error (${status}): ${statusText}`;
+        }
+        return `HTTP Error ${status}: ${statusText}`;
+    }
+  }
+
+  private async createErrorContent(
+    bookmarkId: string,
+    url: string,
+    type: ContentType,
+    errorMessage: string
+  ): Promise<Content> {
+    return {
+      bookmarkId,
+      url,
+      type,
+      title: 'Failed to fetch',
+      content: '',
+      contentHash: await this.calculateHash(''),
+      links: [],
+      fetchedAt: Date.now(),
+      fetchError: errorMessage,
+    };
   }
 
   private extractTitle(document: Document): string {
