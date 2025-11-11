@@ -139,9 +139,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       return;
     }
 
-    if (!/^[a-z0-9_-]+$/.test(providerId)) {
+    if (!/^[a-z0-9_.:/-]+$/.test(providerId)) {
       alert(
-        'Provider ID can only contain lowercase letters, numbers, hyphens, and underscores'
+        'Provider ID can only contain lowercase letters, numbers, hyphens, underscores, colons, periods, and forward slashes'
       );
       return;
     }
@@ -201,8 +201,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             />
           </label>
           <p className="form-hint">
-            Unique identifier (lowercase, letters, numbers, hyphens, underscores
-            only)
+            Unique identifier (e.g., "qwen3:0.6b" or "nomic-embed-text-v1.5")
           </p>
         </div>
 
