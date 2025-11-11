@@ -59,7 +59,16 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     const bookmarkContent = await bookmarkService.getBookmarkContent(
       bookmark.id
     );
-    setContent(bookmarkContent);
+    const sortedContent = bookmarkContent.sort((a, b) => {
+      if (a.type === ContentType.PRIMARY && b.type !== ContentType.PRIMARY) {
+        return -1;
+      }
+      if (a.type !== ContentType.PRIMARY && b.type === ContentType.PRIMARY) {
+        return 1;
+      }
+      return 0;
+    });
+    setContent(sortedContent);
 
     const pages = await bookmarkService.getRelatedPages(bookmark.id);
     setRelatedPages(pages);
@@ -123,10 +132,12 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     setIsCrawling(true);
     console.log(
       '[BookmarkDetailModal] Starting crawl for bookmark:',
-      bookmark.id
+      bookmark.id,
+      'with depth:',
+      crawlDepth
     );
     try {
-      await bookmarkService.crawlBookmark(bookmark.id);
+      await bookmarkService.crawlBookmark(bookmark.id, crawlDepth);
       console.log('[BookmarkDetailModal] Crawl completed successfully');
       await loadData();
       setShowContent(true);

@@ -219,17 +219,14 @@ export class BookmarkService {
     return bookmarks;
   }
 
-  async crawlBookmark(id: string): Promise<void> {
+  async crawlBookmark(id: string, depth?: number): Promise<void> {
     const bookmark = await this.getBookmark(id);
     if (!bookmark) {
       throw new Error(`Bookmark with id "${id}" not found`);
     }
 
-    await this.crawlerService.crawlBookmark(
-      id,
-      bookmark.url,
-      bookmark.crawlDepth
-    );
+    const effectiveDepth = depth ?? bookmark.crawlDepth;
+    await this.crawlerService.crawlBookmark(id, bookmark.url, effectiveDepth);
   }
 
   async getBookmarkContent(id: string): Promise<Content[]> {
