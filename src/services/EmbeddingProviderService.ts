@@ -28,7 +28,8 @@ export class EmbeddingProviderService {
   }
 
   async getActiveProvider(): Promise<EmbeddingProvider | undefined> {
-    return await db.embeddingProviders.where('isActive').equals(1).first();
+    const providers = await db.embeddingProviders.toArray();
+    return providers.find((p) => p.isActive);
   }
 
   async createProvider(
