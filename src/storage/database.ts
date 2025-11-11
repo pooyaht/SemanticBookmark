@@ -42,7 +42,7 @@ export class SemanticBookmarkDatabase extends Dexie {
       content:
         '[bookmarkId+url], bookmarkId, url, type, contentHash, fetchedAt',
       relatedPages: 'id, bookmarkId, url, depth, discoveredAt',
-      embeddingProviders: 'id, type, isActive, createdAt',
+      embeddingProviders: 'id, type, createdAt',
       embeddings: '[bookmarkId+providerId], bookmarkId, providerId, createdAt',
     });
   }
