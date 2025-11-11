@@ -5,7 +5,6 @@ import { Layout } from '../components/Layout';
 import type { CrawlerSettings } from '@/types/settings';
 
 import { SettingsService } from '@/services/SettingsService';
-import { ContentExtractionMode } from '@/types/settings';
 
 const settingsService = SettingsService.getInstance();
 
@@ -230,113 +229,6 @@ export const SettingsPage: React.FC = () => {
               <p className="setting-description">
                 Only follow links from the same domain. Recommended to keep
                 crawling focused and prevent following external links.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="settings-section">
-          <h2 className="settings-section-title">Content Extraction</h2>
-          <p className="settings-section-description">
-            Choose how to extract content from web pages. Some modern sites
-            require JavaScript to render properly.
-          </p>
-
-          <div className="settings-group">
-            <div className="setting-item">
-              <div className="setting-header">
-                <label className="setting-label-text">Extraction mode</label>
-              </div>
-              <div className="setting-radio-group">
-                <label className="setting-radio-label">
-                  <input
-                    type="radio"
-                    name="extractionMode"
-                    checked={
-                      settings.extractionMode ===
-                      ContentExtractionMode.STATIC_ONLY
-                    }
-                    onChange={() =>
-                      handleChange(
-                        'extractionMode',
-                        ContentExtractionMode.STATIC_ONLY
-                      )
-                    }
-                  />
-                  <div>
-                    <strong>Static only (fast)</strong>
-                    <p className="setting-radio-description">
-                      Fetch HTML directly without JavaScript. Works for ~70% of
-                      sites. Fastest but may miss content on modern SPAs.
-                    </p>
-                  </div>
-                </label>
-                <label className="setting-radio-label">
-                  <input
-                    type="radio"
-                    name="extractionMode"
-                    checked={
-                      settings.extractionMode === ContentExtractionMode.HYBRID
-                    }
-                    onChange={() =>
-                      handleChange(
-                        'extractionMode',
-                        ContentExtractionMode.HYBRID
-                      )
-                    }
-                  />
-                  <div>
-                    <strong>Hybrid (recommended)</strong>
-                    <p className="setting-radio-description">
-                      Try static first, use JavaScript rendering as fallback if
-                      content appears incomplete. Best balance of speed and
-                      accuracy.
-                    </p>
-                  </div>
-                </label>
-                <label className="setting-radio-label">
-                  <input
-                    type="radio"
-                    name="extractionMode"
-                    checked={
-                      settings.extractionMode ===
-                      ContentExtractionMode.ALWAYS_JS
-                    }
-                    onChange={() =>
-                      handleChange(
-                        'extractionMode',
-                        ContentExtractionMode.ALWAYS_JS
-                      )
-                    }
-                  />
-                  <div>
-                    <strong>Always use JavaScript (accurate)</strong>
-                    <p className="setting-radio-description">
-                      Always render pages with JavaScript. Most accurate but
-                      slower. May briefly show tabs in Firefox.
-                    </p>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            <div className="setting-item">
-              <div className="setting-header">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={settings.showTabWhenRendering}
-                    onChange={(e) =>
-                      handleChange('showTabWhenRendering', e.target.checked)
-                    }
-                  />
-                  <span>Show tab briefly when using JS rendering</span>
-                </label>
-              </div>
-              <p className="setting-description">
-                In Firefox, tabs may appear briefly when rendering JavaScript.
-                Chrome supports invisible rendering. Enable this for visual
-                feedback.
               </p>
             </div>
           </div>
