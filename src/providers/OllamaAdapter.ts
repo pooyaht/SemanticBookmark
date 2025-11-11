@@ -11,9 +11,12 @@ export class OllamaAdapter extends BaseProviderAdapter {
   async generateEmbedding(
     text: string,
     endpoint: string,
-    model: string
+    model: string,
+    prefix?: string,
+    suffix?: string
   ): Promise<EmbeddingGenerationResult> {
     try {
+      const processedText = this.applyTokens(text, prefix, suffix);
       const url = `${endpoint}/api/embeddings`;
       const response = await this.fetchWithTimeout(url, {
         method: 'POST',
@@ -22,7 +25,7 @@ export class OllamaAdapter extends BaseProviderAdapter {
         },
         body: JSON.stringify({
           model,
-          prompt: text,
+          prompt: processedText,
         }),
       });
 
@@ -53,13 +56,17 @@ export class OllamaAdapter extends BaseProviderAdapter {
 
   async testConnection(
     endpoint: string,
-    model: string
+    model: string,
+    prefix?: string,
+    suffix?: string
   ): Promise<ProviderTestResult> {
     try {
       const result = await this.generateEmbedding(
         'test connection',
         endpoint,
-        model
+        model,
+        prefix,
+        suffix
       );
 
       return {

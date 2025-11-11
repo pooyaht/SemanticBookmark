@@ -95,10 +95,12 @@ export class EmbeddingProviderService {
   async testConnection(
     type: ProviderType,
     endpoint: string,
-    model: string
+    model: string,
+    prefix?: string,
+    suffix?: string
   ): Promise<ProviderTestResult> {
     const adapter = ProviderFactory.getAdapter(type);
-    return await adapter.testConnection(endpoint, model);
+    return await adapter.testConnection(endpoint, model, prefix, suffix);
   }
 
   async testProviderConnection(id: string): Promise<ProviderTestResult> {
@@ -110,7 +112,9 @@ export class EmbeddingProviderService {
     const result = await this.testConnection(
       provider.type,
       provider.endpoint,
-      provider.modelName
+      provider.modelName,
+      provider.inputPrefix,
+      provider.inputSuffix
     );
 
     await db.embeddingProviders.update(id, {

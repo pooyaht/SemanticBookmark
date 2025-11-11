@@ -10,13 +10,25 @@ export abstract class BaseProviderAdapter {
   abstract generateEmbedding(
     text: string,
     endpoint: string,
-    model: string
+    model: string,
+    prefix?: string,
+    suffix?: string
   ): Promise<EmbeddingGenerationResult>;
 
   abstract testConnection(
     endpoint: string,
-    model: string
+    model: string,
+    prefix?: string,
+    suffix?: string
   ): Promise<ProviderTestResult>;
+
+  protected applyTokens(
+    text: string,
+    prefix?: string,
+    suffix?: string
+  ): string {
+    return `${prefix ?? ''}${text}${suffix ?? ''}`;
+  }
 
   protected async fetchWithTimeout(
     url: string,

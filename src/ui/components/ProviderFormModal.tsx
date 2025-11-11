@@ -26,6 +26,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [endpoint, setEndpoint] = useState('http://localhost:8080');
   const [modelName, setModelName] = useState('');
   const [dimensions, setDimensions] = useState<number | ''>('');
+  const [inputPrefix, setInputPrefix] = useState('');
+  const [inputSuffix, setInputSuffix] = useState('');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -56,6 +58,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setEndpoint(provider.endpoint);
       setModelName(provider.modelName);
       setDimensions(provider.dimensions);
+      setInputPrefix(provider.inputPrefix ?? '');
+      setInputSuffix(provider.inputSuffix ?? '');
     }
   };
 
@@ -65,6 +69,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     setEndpoint('http://localhost:8080');
     setModelName('');
     setDimensions('');
+    setInputPrefix('');
+    setInputSuffix('');
     setTesting(false);
     setTestResult(null);
     setSaving(false);
@@ -87,7 +93,9 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       const result = await providerService.testConnection(
         providerType,
         endpoint,
-        modelName
+        modelName,
+        inputPrefix || undefined,
+        inputSuffix || undefined
       );
 
       if (result.success && result.dimensions) {
@@ -148,6 +156,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           endpoint,
           modelName,
           dimensions: Number(dimensions),
+          inputPrefix: inputPrefix || undefined,
+          inputSuffix: inputSuffix || undefined,
         });
       } else {
         await providerService.createProvider({
@@ -157,6 +167,8 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           endpoint,
           modelName,
           dimensions: Number(dimensions),
+          inputPrefix: inputPrefix || undefined,
+          inputSuffix: inputSuffix || undefined,
         });
       }
 
@@ -253,6 +265,39 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
             {autoDetectedDimensions
               ? `Auto-detected: ${autoDetectedDimensions} dimensions`
               : 'Test connection to auto-detect'}
+          </p>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">
+            Input Prefix (Optional)
+            <input
+              type="text"
+              className="form-input"
+              value={inputPrefix}
+              onChange={(e) => setInputPrefix(e.target.value)}
+              placeholder="query: "
+            />
+          </label>
+          <p className="form-hint">
+            Text to prepend to inputs before embedding (e.g., "query: " or
+            "passage: ")
+          </p>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">
+            Input Suffix (Optional)
+            <input
+              type="text"
+              className="form-input"
+              value={inputSuffix}
+              onChange={(e) => setInputSuffix(e.target.value)}
+              placeholder=""
+            />
+          </label>
+          <p className="form-hint">
+            Text to append to inputs before embedding (e.g., special end tokens)
           </p>
         </div>
 

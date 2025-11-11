@@ -7,6 +7,8 @@ export interface EmbeddingProvider {
   endpoint: string;
   modelName: string;
   dimensions: number;
+  inputPrefix?: string;
+  inputSuffix?: string;
   isActive: boolean;
   createdAt: Date;
   lastUsedAt?: Date;
