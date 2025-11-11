@@ -1,3 +1,5 @@
+import { Readability } from '@mozilla/readability';
+
 import { SettingsService } from './SettingsService';
 
 import type { Content, RelatedPage } from '@/types/content';
@@ -158,27 +160,26 @@ export class CrawlerService {
       const doc = parser.parseFromString(fetchResult.html, 'text/html');
       console.log(`[CrawlerService] HTML parsed successfully`);
 
-      const title = this.extractTitle(doc);
-      const description = this.extractDescription(doc);
-      const content = this.extractTextContent(doc);
+      const extractedContent = this.extractContentWithReadability(doc, url);
       const links = this.extractLinks(doc, url);
-      const contentHash = await this.calculateHash(content);
+      const contentHash = await this.calculateHash(extractedContent.content);
 
       console.log(`[CrawlerService] Content extracted:`, {
-        title,
-        hasDescription: !!description,
-        contentLength: content.length,
+        title: extractedContent.title,
+        hasDescription: !!extractedContent.description,
+        contentLength: extractedContent.content.length,
         linksCount: links.length,
         contentHash: `${contentHash.substring(0, 10)}...`,
+        usedReadability: extractedContent.usedReadability,
       });
 
       return {
         bookmarkId,
         url,
         type,
-        title,
-        description,
-        content,
+        title: extractedContent.title,
+        description: extractedContent.description,
+        content: extractedContent.content,
         contentHash,
         links,
         fetchedAt: Date.now(),
@@ -305,6 +306,50 @@ export class CrawlerService {
     };
   }
 
+  private extractContentWithReadability(
+    document: Document,
+    _url: string
+  ): {
+    title: string;
+    description: string | undefined;
+    content: string;
+    usedReadability: boolean;
+  } {
+    try {
+      const documentClone = document.cloneNode(true) as Document;
+      const reader = new Readability(documentClone, {
+        keepClasses: false,
+        charThreshold: 500,
+      });
+      const article = reader.parse();
+
+      if (article?.textContent && article.textContent.length > 300) {
+        console.log(
+          `[CrawlerService] Readability extracted ${article.textContent.length} chars`
+        );
+        return {
+          title: article.title || this.extractTitle(document),
+          description: article.excerpt || this.extractDescription(document),
+          content: this.cleanText(article.textContent),
+          usedReadability: true,
+        };
+      } else {
+        console.log(
+          '[CrawlerService] Readability failed or content too short, using fallback'
+        );
+      }
+    } catch (error) {
+      console.warn('[CrawlerService] Readability parsing error:', error);
+    }
+
+    return {
+      title: this.extractTitle(document),
+      description: this.extractDescription(document),
+      content: this.extractTextContent(document),
+      usedReadability: false,
+    };
+  }
+
   private extractTitle(document: Document): string {
     const titleElement = document.querySelector('title');
     if (titleElement?.textContent) {
@@ -350,39 +395,61 @@ export class CrawlerService {
   private extractTextContent(document: Document): string {
     const article = document.querySelector('article');
     if (article) {
-      return this.cleanText(article.textContent ?? '');
+      return this.cleanText(this.removeNoiseFromElement(article));
     }
 
     const main = document.querySelector('main');
     if (main) {
-      return this.cleanText(main.textContent ?? '');
+      return this.cleanText(this.removeNoiseFromElement(main));
     }
 
     const content = document.querySelector(
       '.content, #content, .post, .article'
     );
     if (content) {
-      return this.cleanText(content.textContent ?? '');
+      return this.cleanText(this.removeNoiseFromElement(content));
     }
 
     const body = document.body;
     if (body) {
-      const clone = body.cloneNode(true) as HTMLElement;
-      const selectorsToRemove = [
-        'script',
-        'style',
-        'nav',
-        'header',
-        'footer',
-        'aside',
-      ];
-      selectorsToRemove.forEach((selector) => {
-        clone.querySelectorAll(selector).forEach((el) => el.remove());
-      });
-      return this.cleanText(clone.textContent ?? '');
+      return this.cleanText(this.removeNoiseFromElement(body));
     }
 
     return '';
+  }
+
+  private removeNoiseFromElement(element: Element): string {
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    const selectorsToRemove = [
+      'script',
+      'style',
+      'noscript',
+      'svg',
+      'canvas',
+      'nav',
+      'header',
+      'footer',
+      'aside',
+      '.navigation',
+      '.nav',
+      '.menu',
+      '.sidebar',
+      '.footer',
+      '.header',
+      '.ad',
+      '.ads',
+      '.advertisement',
+      '[role="navigation"]',
+      '[role="banner"]',
+      '[role="complementary"]',
+    ];
+
+    selectorsToRemove.forEach((selector) => {
+      clone.querySelectorAll(selector).forEach((el) => el.remove());
+    });
+
+    return clone.textContent ?? '';
   }
 
   private cleanText(text: string): string {
