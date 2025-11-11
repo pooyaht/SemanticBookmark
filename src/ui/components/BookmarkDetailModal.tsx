@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
 import type { Bookmark } from '@/types/bookmark';
+import type { Content, RelatedPage } from '@/types/content';
 import type { Tag } from '@/types/tag';
 
 import { BookmarkService } from '@/services/BookmarkService';
 import { TagService } from '@/services/TagService';
+import { ContentType } from '@/types/content';
 import { TagAssignmentSource, TagSource } from '@/types/tag';
 
 const bookmarkService = BookmarkService.getInstance();
@@ -25,12 +27,22 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [userDescription, setUserDescription] = useState(
     bookmark.userDescription ?? ''
   );
+  const [crawlDepth, setCrawlDepth] = useState<number | undefined>(
+    bookmark.crawlDepth
+  );
   const [assignedTags, setAssignedTags] = useState<Tag[]>([]);
   const [originalTagIds, setOriginalTagIds] = useState<Set<string>>(new Set());
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [content, setContent] = useState<Content[]>([]);
+  const [relatedPages, setRelatedPages] = useState<RelatedPage[]>([]);
+  const [showContent, setShowContent] = useState(false);
+  const [expandedContent, setExpandedContent] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     void loadData();
@@ -43,6 +55,23 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
 
     const allTags = await tagService.getAllTags();
     setAvailableTags(allTags);
+
+    const bookmarkContent = await bookmarkService.getBookmarkContent(
+      bookmark.id
+    );
+    const sortedContent = bookmarkContent.sort((a, b) => {
+      if (a.type === ContentType.PRIMARY && b.type !== ContentType.PRIMARY) {
+        return -1;
+      }
+      if (a.type !== ContentType.PRIMARY && b.type === ContentType.PRIMARY) {
+        return 1;
+      }
+      return 0;
+    });
+    setContent(sortedContent);
+
+    const pages = await bookmarkService.getRelatedPages(bookmark.id);
+    setRelatedPages(pages);
   };
 
   const handleSave = async () => {
@@ -58,6 +87,10 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
           bookmark.id,
           userDescription
         );
+      }
+
+      if (crawlDepth !== bookmark.crawlDepth) {
+        await bookmarkService.updateCrawlDepth(bookmark.id, crawlDepth);
       }
 
       const currentTagIds = new Set(assignedTags.map((t) => t.id));
@@ -93,6 +126,43 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
       await bookmarkService.hideBookmark(bookmark.id);
     }
     onSave();
+  };
+
+  const handleCrawl = async () => {
+    setIsCrawling(true);
+    console.log(
+      '[BookmarkDetailModal] Starting crawl for bookmark:',
+      bookmark.id,
+      'with depth:',
+      crawlDepth
+    );
+    try {
+      await bookmarkService.crawlBookmark(bookmark.id, crawlDepth);
+      console.log('[BookmarkDetailModal] Crawl completed successfully');
+      await loadData();
+      setShowContent(true);
+    } catch (error) {
+      console.error('[BookmarkDetailModal] Crawl failed:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(
+        `Failed to crawl bookmark: ${errorMessage}\n\nCheck the browser console for detailed logs.`
+      );
+    } finally {
+      setIsCrawling(false);
+    }
+  };
+
+  const toggleContentExpansion = (url: string) => {
+    setExpandedContent((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(url)) {
+        newSet.delete(url);
+      } else {
+        newSet.add(url);
+      }
+      return newSet;
+    });
   };
 
   const handleAddTag = (tag: Tag) => {
@@ -276,6 +346,160 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
               rows={4}
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Content Crawling</label>
+            <div className="crawl-depth-selector">
+              <label className="depth-label">
+                Crawl Depth:
+                <select
+                  className="depth-select"
+                  value={crawlDepth ?? ''}
+                  onChange={(e) =>
+                    setCrawlDepth(
+                      e.target.value === '' ? undefined : Number(e.target.value)
+                    )
+                  }
+                >
+                  <option value="">Use default from settings</option>
+                  <option value="0">0 - Original page only</option>
+                  <option value="1">1 - Original + 1 direct link</option>
+                  <option value="2">2 - Original + 2 direct links</option>
+                  <option value="3">3 - Original + 3 direct links</option>
+                  <option value="5">5 - Original + 5 direct links</option>
+                  <option value="10">10 - Original + 10 direct links</option>
+                </select>
+              </label>
+            </div>
+            <div className="crawl-controls">
+              <button
+                className="btn btn-primary btn-small"
+                onClick={() => void handleCrawl()}
+                disabled={isCrawling}
+              >
+                {isCrawling ? 'Fetching Content...' : 'Fetch Content'}
+              </button>
+              {content.length > 0 && (
+                <div className="crawl-status">
+                  <span className="status-badge success">
+                    Content crawled ({content.length} page
+                    {content.length > 1 ? 's' : ''})
+                  </span>
+                  {content[0] && (
+                    <span className="crawl-date">
+                      Last crawled:{' '}
+                      {new Date(content[0].fetchedAt).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              )}
+              {content.length === 0 && !isCrawling && (
+                <span className="status-badge neutral">Not crawled yet</span>
+              )}
+            </div>
+            {content.length > 0 && (
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => setShowContent(!showContent)}
+                style={{ marginTop: '8px' }}
+              >
+                {showContent ? 'Hide Content Preview' : 'Show Content Preview'}
+              </button>
+            )}
+          </div>
+
+          {showContent && content.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Content Preview</label>
+              {content.map((c) => {
+                const isExpanded = expandedContent.has(c.url);
+                const shouldTruncate = c.content.length > 300;
+                const hasError = !!c.fetchError;
+
+                return (
+                  <div
+                    key={c.url}
+                    className={`content-preview ${hasError ? 'content-error' : ''}`}
+                  >
+                    <div className="content-header">
+                      <span className="content-type-badge">
+                        {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
+                      </span>
+                      <strong className="content-title">{c.title}</strong>
+                    </div>
+
+                    {hasError ? (
+                      <div className="content-error-box">
+                        <div className="error-icon">⚠️</div>
+                        <div className="error-details">
+                          <div className="error-message">{c.fetchError}</div>
+                          <div className="error-hint">
+                            This page could not be fetched. The URL may be
+                            invalid, the server may be down, or you may not have
+                            permission to access it.
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {c.description && (
+                          <p className="content-description">{c.description}</p>
+                        )}
+                        <div className="content-text">
+                          {isExpanded || !shouldTruncate
+                            ? c.content
+                            : `${c.content.substring(0, 300)}...`}
+                        </div>
+                        {shouldTruncate && (
+                          <button
+                            className="btn btn-secondary btn-small"
+                            onClick={() => toggleContentExpansion(c.url)}
+                            style={{ marginTop: '8px' }}
+                          >
+                            {isExpanded ? 'Show Less' : 'Read More'}
+                          </button>
+                        )}
+                      </>
+                    )}
+
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="content-url"
+                    >
+                      {c.url}
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {relatedPages.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">
+                Related Pages ({relatedPages.length})
+              </label>
+              <div className="related-pages-list">
+                {relatedPages.map((page) => (
+                  <div key={page.id} className="related-page-item">
+                    <a
+                      href={page.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="related-page-link"
+                    >
+                      {page.title || page.url}
+                    </a>
+                    <span className="related-page-meta">
+                      Depth {page.depth}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Embedding Status</label>

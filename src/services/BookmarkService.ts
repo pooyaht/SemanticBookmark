@@ -1,8 +1,10 @@
 import browser from 'webextension-polyfill';
 
+import { CrawlerService } from './CrawlerService';
 import { TagService } from './TagService';
 
 import type { Bookmark } from '@/types/bookmark';
+import type { Content, RelatedPage } from '@/types/content';
 
 import { db } from '@/storage/database';
 import { TagSource, TagAssignmentSource } from '@/types/tag';
@@ -11,9 +13,11 @@ export class BookmarkService {
   private static instance: BookmarkService;
 
   private tagService: TagService;
+  private crawlerService: CrawlerService;
 
   constructor() {
     this.tagService = TagService.getInstance();
+    this.crawlerService = CrawlerService.getInstance();
   }
 
   static getInstance(): BookmarkService {
@@ -84,6 +88,21 @@ export class BookmarkService {
     await db.bookmarks.update(id, {
       userDescription: description,
       version: bookmark.version + 1,
+      lastModified: new Date(),
+    });
+  }
+
+  async updateCrawlDepth(
+    id: string,
+    crawlDepth: number | undefined
+  ): Promise<void> {
+    const bookmark = await this.getBookmark(id);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${id}" not found`);
+    }
+
+    await db.bookmarks.update(id, {
+      crawlDepth,
       lastModified: new Date(),
     });
   }
@@ -198,5 +217,27 @@ export class BookmarkService {
 
     traverse(bookmarkTree);
     return bookmarks;
+  }
+
+  async crawlBookmark(id: string, depth?: number): Promise<void> {
+    const bookmark = await this.getBookmark(id);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${id}" not found`);
+    }
+
+    const effectiveDepth = depth ?? bookmark.crawlDepth;
+    await this.crawlerService.crawlBookmark(id, bookmark.url, effectiveDepth);
+  }
+
+  async getBookmarkContent(id: string): Promise<Content[]> {
+    return await this.crawlerService.getBookmarkContent(id);
+  }
+
+  async getRelatedPages(id: string): Promise<RelatedPage[]> {
+    return await this.crawlerService.getRelatedPages(id);
+  }
+
+  async deleteBookmarkContent(id: string): Promise<void> {
+    await this.crawlerService.deleteBookmarkContent(id);
   }
 }
