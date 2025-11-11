@@ -2,6 +2,7 @@ import Dexie from 'dexie';
 
 import type { Bookmark } from '@/types/bookmark';
 import type { Content, RelatedPage } from '@/types/content';
+import type { EmbeddingProvider, Embedding } from '@/types/provider';
 import type { Tag, BookmarkTag } from '@/types/tag';
 import type { Table } from 'dexie';
 
@@ -13,6 +14,8 @@ export class SemanticBookmarkDatabase extends Dexie {
   bookmarks!: Table<Bookmark, string>;
   content!: Table<Content, [string, string]>;
   relatedPages!: Table<RelatedPage, string>;
+  embeddingProviders!: Table<EmbeddingProvider, string>;
+  embeddings!: Table<Embedding, [string, string]>;
 
   constructor() {
     super(STORAGE_CONFIG.DB_NAME);
@@ -30,6 +33,17 @@ export class SemanticBookmarkDatabase extends Dexie {
       content:
         '[bookmarkId+url], bookmarkId, url, type, contentHash, fetchedAt',
       relatedPages: 'id, bookmarkId, url, depth, discoveredAt',
+    });
+
+    this.version(4).stores({
+      tags: 'id, name, source, usageCount',
+      bookmarkTags: '[bookmarkId+tagId], bookmarkId, tagId, assignedBy',
+      bookmarks: 'id, url, title, version, dateAdded, lastModified',
+      content:
+        '[bookmarkId+url], bookmarkId, url, type, contentHash, fetchedAt',
+      relatedPages: 'id, bookmarkId, url, depth, discoveredAt',
+      embeddingProviders: 'id, type, isActive, createdAt',
+      embeddings: '[bookmarkId+providerId], bookmarkId, providerId, createdAt',
     });
   }
 }

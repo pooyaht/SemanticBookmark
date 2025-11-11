@@ -1,3 +1,5 @@
+import type { AIProviderSettings } from './provider';
+
 export interface CrawlerSettings {
   enabled: boolean;
   defaultDepth: number;
@@ -22,8 +24,16 @@ export const DEFAULT_CRAWLER_SETTINGS: CrawlerSettings = {
 
 export interface Settings {
   crawler: CrawlerSettings;
+  aiProvider: AIProviderSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   crawler: DEFAULT_CRAWLER_SETTINGS,
+  aiProvider: {
+    enabled: false,
+    type: 'localai',
+    endpoint: 'http://localhost:8080',
+    modelName: '',
+    isConnected: false,
+  },
 };
