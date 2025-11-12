@@ -49,6 +49,8 @@ export class ContentPreparationService {
 
     if (components.aiSummary) {
       textParts.push(components.aiSummary);
+      textParts.push(components.title);
+      textParts.push(components.title);
     }
 
     const text = textParts.join('\n\n');
