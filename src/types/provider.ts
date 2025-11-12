@@ -8,6 +8,7 @@ export interface EmbeddingProvider {
   modelName: string;
   documentPrefix?: string;
   documentSuffix?: string;
+  maxContextTokens?: number;
   isActive: boolean;
   createdAt: Date;
   lastUsedAt?: Date;
@@ -21,6 +22,8 @@ export interface Embedding {
   embedding: Float32Array;
   createdAt: Date;
   modelName: string;
+  isTruncated?: boolean;
+  tokenCount?: number;
 }
 
 export interface AIProviderSettings {
