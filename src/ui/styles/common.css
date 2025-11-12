@@ -1450,3 +1450,20 @@ h1 {
   color: #4a90e2;
   font-weight: 600;
 }
+
+.embedding-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.embedding-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.embedding-status-row .status-badge {
+  min-width: 120px;
+}

@@ -8,10 +8,14 @@ import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
 
 import { BookmarkService } from '@/services/BookmarkService';
+import { EmbeddingProviderService } from '@/services/EmbeddingProviderService';
+import { IndexingService } from '@/services/IndexingService';
 import { TagService } from '@/services/TagService';
 
 const bookmarkService = BookmarkService.getInstance();
 const tagService = TagService.getInstance();
+const indexingService = IndexingService.getInstance();
+const providerService = EmbeddingProviderService.getInstance();
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden';
 
@@ -26,6 +30,11 @@ export const BookmarksPage: React.FC = () => {
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexingProgress, setIndexingProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
@@ -73,6 +82,45 @@ export const BookmarksPage: React.FC = () => {
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncMessage(null), 3000);
+    }
+  };
+
+  const handleIndexAll = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    if (!activeProvider) {
+      alert('No active embedding provider. Please configure one in settings.');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will generate embeddings for all ${bookmarks.length} bookmarks. This may take a while. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsIndexing(true);
+    setIndexingProgress({ current: 0, total: bookmarks.length });
+
+    try {
+      await indexingService.indexAllBookmarks((progress) => {
+        setIndexingProgress({
+          current: progress.current,
+          total: progress.total,
+        });
+      });
+
+      alert(
+        `Indexing complete!\nSucceeded: ${indexingProgress?.current ?? 0} / ${indexingProgress?.total ?? 0}`
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Indexing failed: ${errorMessage}`);
+    } finally {
+      setIsIndexing(false);
+      setIndexingProgress(null);
     }
   };
 
@@ -137,13 +185,24 @@ export const BookmarksPage: React.FC = () => {
     <Layout currentPage="bookmarks">
       <div className="header">
         <h1>Bookmarks</h1>
-        <button
-          className="btn btn-primary btn-small"
-          onClick={() => void handleSync()}
-          disabled={isSyncing}
-        >
-          {isSyncing ? 'Syncing...' : 'Sync'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={() => {
+              void handleIndexAll();
+            }}
+            disabled={isIndexing || isSyncing}
+          >
+            {isIndexing ? 'Indexing...' : 'Index All'}
+          </button>
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => void handleSync()}
+            disabled={isSyncing || isIndexing}
+          >
+            {isSyncing ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
       </div>
 
       {syncMessage && (
@@ -158,6 +217,22 @@ export const BookmarksPage: React.FC = () => {
           }}
         >
           {syncMessage}
+        </div>
+      )}
+
+      {indexingProgress && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#e3f2fd',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#1565c0',
+          }}
+        >
+          Indexing: {indexingProgress.current} / {indexingProgress.total}{' '}
+          bookmarks
         </div>
       )}
 
