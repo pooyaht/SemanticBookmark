@@ -1,11 +1,22 @@
+import {
+  Globe,
+  CheckCircle,
+  FileText,
+  MessageSquare,
+  Tag as TagIcon,
+  EyeOff,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
+import type { BookmarkStatus } from '@/services/BookmarkStatusService';
 import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
 
+import { BookmarkStatusService } from '@/services/BookmarkStatusService';
 import { TagService } from '@/services/TagService';
 
 const tagService = TagService.getInstance();
+const statusService = BookmarkStatusService.getInstance();
 
 interface BookmarkListProps {
   bookmarks: Bookmark[];
@@ -19,9 +30,13 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
   const [bookmarkTags, setBookmarkTags] = useState<Map<string, Tag[]>>(
     new Map()
   );
+  const [bookmarkStatuses, setBookmarkStatuses] = useState<
+    Map<string, BookmarkStatus>
+  >(new Map());
 
   useEffect(() => {
     void loadTags();
+    void loadStatuses();
   }, [bookmarks]);
 
   const loadTags = async () => {
@@ -35,11 +50,18 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
     setBookmarkTags(tagsMap);
   };
 
-  const truncateUrl = (url: string, maxLength: number) => {
-    if (url.length <= maxLength) {
+  const loadStatuses = async () => {
+    const statuses = await statusService.getBatchStatus(bookmarks);
+    setBookmarkStatuses(statuses);
+  };
+
+  const extractDomain = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
       return url;
     }
-    return `${url.substring(0, maxLength)}...`;
   };
 
   if (bookmarks.length === 0) {
@@ -57,14 +79,16 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
   }
 
   return (
-    <div className="bookmarks-list">
+    <div className="bookmarks-list-modern">
       {bookmarks.map((bookmark) => {
         const tags = bookmarkTags.get(bookmark.id) ?? [];
+        const status = bookmarkStatuses.get(bookmark.id);
+        const domain = extractDomain(bookmark.url);
 
         return (
           <div
             key={bookmark.id}
-            className={`bookmark-item ${bookmark.hidden ? 'hidden' : ''}`}
+            className={`bookmark-card-modern ${bookmark.hidden ? 'hidden' : ''}`}
             onClick={() => onBookmarkClick(bookmark)}
             role="button"
             tabIndex={0}
@@ -74,35 +98,50 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
               }
             }}
           >
-            <div className="bookmark-icon">
-              {bookmark.favicon ? (
-                <img src={bookmark.favicon} alt="" />
-              ) : (
-                <svg fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                </svg>
-              )}
-            </div>
-            <div className="bookmark-info">
-              <div className="bookmark-title">
-                {bookmark.title}
-                {bookmark.hidden && (
-                  <span className="hidden-badge">Hidden</span>
+            <div className="bookmark-card-header">
+              <div className="bookmark-favicon">
+                {bookmark.favicon ? (
+                  <img src={bookmark.favicon} alt="" />
+                ) : (
+                  <Globe size={20} />
                 )}
               </div>
-              <div className="bookmark-url">
-                {truncateUrl(bookmark.url, 50)}
-              </div>
-              {tags.length > 0 && (
-                <div className="bookmark-tags">
-                  {tags.slice(0, 3).map((tag) => (
-                    <span key={tag.id} className="tag-chip">
-                      {tag.name}
+              <div className="bookmark-card-info">
+                <div className="bookmark-card-title">
+                  {bookmark.title}
+                  {bookmark.hidden && (
+                    <span className="bookmark-hidden-badge">
+                      <EyeOff size={12} />
                     </span>
-                  ))}
-                  {tags.length > 3 && (
-                    <span className="tag-chip more">+{tags.length - 3}</span>
                   )}
+                </div>
+                <div className="bookmark-card-domain">{domain}</div>
+              </div>
+            </div>
+
+            <div className="bookmark-card-footer">
+              <div className="bookmark-status-icons">
+                {status?.isCrawled && (
+                  <div className="status-icon" title="Crawled">
+                    <CheckCircle size={14} />
+                  </div>
+                )}
+                {status?.isIndexed && (
+                  <div className="status-icon" title="Indexed">
+                    <FileText size={14} />
+                  </div>
+                )}
+                {status?.hasAISummary && (
+                  <div className="status-icon" title="AI Summary">
+                    <MessageSquare size={14} />
+                  </div>
+                )}
+              </div>
+
+              {tags.length > 0 && (
+                <div className="bookmark-card-tags">
+                  <TagIcon size={12} />
+                  <span className="tag-count">{tags.length}</span>
                 </div>
               )}
             </div>

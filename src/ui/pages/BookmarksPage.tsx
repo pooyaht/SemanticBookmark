@@ -1,7 +1,9 @@
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import React, { useState, useEffect, useMemo } from 'react';
 
 import { BookmarkDetailModal } from '../components/BookmarkDetailModal';
 import { BookmarkList } from '../components/BookmarkList';
+import { FilterModal } from '../components/FilterModal';
 import { Layout } from '../components/Layout';
 
 import type { BookmarkStatus } from '@/services/BookmarkStatusService';
@@ -55,6 +57,8 @@ export const BookmarksPage: React.FC = () => {
     userDescription: 'all' as 'all' | 'yes' | 'no',
     stale: 'all' as 'all' | 'yes' | 'no',
   });
+
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   useEffect(() => {
     void loadBookmarks();
@@ -250,6 +254,22 @@ export const BookmarksPage: React.FC = () => {
     setVisibilityFilter(filter);
   };
 
+  const getActiveFilterCount = () => {
+    let count = 0;
+
+    if (visibilityFilter !== 'visible') {count++;}
+    count += selectedTagIds.size;
+    if (statusFilters.crawled !== 'all') {count++;}
+    if (statusFilters.indexed !== 'all') {count++;}
+    if (statusFilters.aiSummary !== 'all') {count++;}
+    if (statusFilters.userDescription !== 'all') {count++;}
+    if (statusFilters.stale !== 'all') {count++;}
+
+    return count;
+  };
+
+  const hasActiveFilters = getActiveFilterCount() > 0;
+
   return (
     <Layout currentPage="bookmarks">
       <div className="header">
@@ -305,366 +325,36 @@ export const BookmarksPage: React.FC = () => {
         </div>
       )}
 
-      <div className="search-container">
-        <div className="search-input-wrapper">
-          <svg className="search-icon" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 0 0 1.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 0 0-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 0 0 5.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-          </svg>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search bookmarks by title or URL..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button
-              className="clear-search-btn"
-              onClick={() => setSearchTerm('')}
-              title="Clear search"
-            >
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        <div style={{ marginBottom: '12px' }}>
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              color: '#666',
-              marginBottom: '6px',
-            }}
+      <div className="search-container-modern">
+        <div className="search-bar-wrapper">
+          <div className="search-input-modern">
+            <Search size={18} className="search-icon-modern" />
+            <input
+              type="text"
+              placeholder="Search bookmarks..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="clear-btn-modern"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            className={`filter-btn-modern ${hasActiveFilters ? 'active' : ''}`}
+            onClick={() => setIsFilterModalOpen(true)}
+            title="Filters"
           >
-            Visibility
-          </div>
-          <div className="category-filters">
-            <label className="category-filter-item">
-              <input
-                type="radio"
-                name="visibility"
-                checked={visibilityFilter === 'all'}
-                onChange={() => toggleVisibility('all')}
-              />
-              <span>All</span>
-            </label>
-            <label className="category-filter-item">
-              <input
-                type="radio"
-                name="visibility"
-                checked={visibilityFilter === 'visible'}
-                onChange={() => toggleVisibility('visible')}
-              />
-              <span>Visible</span>
-            </label>
-            <label className="category-filter-item">
-              <input
-                type="radio"
-                name="visibility"
-                checked={visibilityFilter === 'hidden'}
-                onChange={() => toggleVisibility('hidden')}
-              />
-              <span>Hidden</span>
-            </label>
-          </div>
-        </div>
-
-        {allTags.length > 0 && (
-          <div>
-            <div
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                color: '#666',
-                marginBottom: '6px',
-              }}
-            >
-              Filter by Tags{' '}
-              {selectedTagIds.size > 0 && `(${selectedTagIds.size})`}
-            </div>
-            <div className="category-filters">
-              {allTags.map((tag) => (
-                <label key={tag.id} className="category-filter-item">
-                  <input
-                    type="checkbox"
-                    checked={selectedTagIds.has(tag.id)}
-                    onChange={() => toggleTag(tag.id)}
-                  />
-                  <span>{tag.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginTop: '16px' }}>
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              color: '#666',
-              marginBottom: '6px',
-            }}
-          >
-            Status Filters
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '12px',
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  marginBottom: '4px',
-                }}
-              >
-                Crawled
-              </div>
-              <div className="category-filters">
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="crawled"
-                    checked={statusFilters.crawled === 'all'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, crawled: 'all' })
-                    }
-                  />
-                  <span>All</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="crawled"
-                    checked={statusFilters.crawled === 'yes'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, crawled: 'yes' })
-                    }
-                  />
-                  <span>Yes</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="crawled"
-                    checked={statusFilters.crawled === 'no'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, crawled: 'no' })
-                    }
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  marginBottom: '4px',
-                }}
-              >
-                Indexed
-              </div>
-              <div className="category-filters">
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="indexed"
-                    checked={statusFilters.indexed === 'all'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, indexed: 'all' })
-                    }
-                  />
-                  <span>All</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="indexed"
-                    checked={statusFilters.indexed === 'yes'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, indexed: 'yes' })
-                    }
-                  />
-                  <span>Yes</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="indexed"
-                    checked={statusFilters.indexed === 'no'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, indexed: 'no' })
-                    }
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  marginBottom: '4px',
-                }}
-              >
-                AI Summary
-              </div>
-              <div className="category-filters">
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="aiSummary"
-                    checked={statusFilters.aiSummary === 'all'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, aiSummary: 'all' })
-                    }
-                  />
-                  <span>All</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="aiSummary"
-                    checked={statusFilters.aiSummary === 'yes'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, aiSummary: 'yes' })
-                    }
-                  />
-                  <span>Yes</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="aiSummary"
-                    checked={statusFilters.aiSummary === 'no'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, aiSummary: 'no' })
-                    }
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  marginBottom: '4px',
-                }}
-              >
-                User Description
-              </div>
-              <div className="category-filters">
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="userDescription"
-                    checked={statusFilters.userDescription === 'all'}
-                    onChange={() =>
-                      setStatusFilters({
-                        ...statusFilters,
-                        userDescription: 'all',
-                      })
-                    }
-                  />
-                  <span>All</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="userDescription"
-                    checked={statusFilters.userDescription === 'yes'}
-                    onChange={() =>
-                      setStatusFilters({
-                        ...statusFilters,
-                        userDescription: 'yes',
-                      })
-                    }
-                  />
-                  <span>Yes</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="userDescription"
-                    checked={statusFilters.userDescription === 'no'}
-                    onChange={() =>
-                      setStatusFilters({
-                        ...statusFilters,
-                        userDescription: 'no',
-                      })
-                    }
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  marginBottom: '4px',
-                }}
-              >
-                Stale Embeddings
-              </div>
-              <div className="category-filters">
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="stale"
-                    checked={statusFilters.stale === 'all'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, stale: 'all' })
-                    }
-                  />
-                  <span>All</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="stale"
-                    checked={statusFilters.stale === 'yes'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, stale: 'yes' })
-                    }
-                  />
-                  <span>Yes</span>
-                </label>
-                <label className="category-filter-item">
-                  <input
-                    type="radio"
-                    name="stale"
-                    checked={statusFilters.stale === 'no'}
-                    onChange={() =>
-                      setStatusFilters({ ...statusFilters, stale: 'no' })
-                    }
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-          </div>
+            <SlidersHorizontal size={18} />
+            {hasActiveFilters && (
+              <span className="filter-badge">{getActiveFilterCount()}</span>
+            )}
+          </button>
         </div>
       </div>
 
@@ -685,6 +375,19 @@ export const BookmarksPage: React.FC = () => {
           onSave={() => void handleSaveBookmark()}
         />
       )}
+
+      <FilterModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        onApply={() => setIsFilterModalOpen(false)}
+        visibilityFilter={visibilityFilter}
+        onVisibilityChange={toggleVisibility}
+        allTags={allTags}
+        selectedTagIds={selectedTagIds}
+        onToggleTag={toggleTag}
+        statusFilters={statusFilters}
+        onStatusFilterChange={setStatusFilters}
+      />
     </Layout>
   );
 };

@@ -53,6 +53,7 @@
     "@tensorflow/tfjs": "^4.22.0",
     "dexie": "^4.0.8",
     "jsdom": "^27.1.0",
+    "lucide-react": "^0.553.0",
     "ml-distance": "^4.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
