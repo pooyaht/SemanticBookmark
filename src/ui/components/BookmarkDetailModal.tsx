@@ -69,6 +69,7 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [isIndexed, setIsIndexed] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(false);
   const [hasActiveProvider, setHasActiveProvider] = useState(false);
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
 
   useEffect(() => {
     void loadData();
@@ -310,6 +311,8 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const handleCopyUrl = async () => {
     try {
       await navigator.clipboard.writeText(bookmark.url);
+      setShowCopiedMessage(true);
+      setTimeout(() => setShowCopiedMessage(false), 2000);
     } catch {
       alert('Failed to copy URL to clipboard');
     }
@@ -356,11 +359,15 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
               <ExternalLink size={18} />
             </button>
             <button
-              className="icon-btn-modern"
+              className={`icon-btn-modern ${showCopiedMessage ? 'copied' : ''}`}
               onClick={() => void handleCopyUrl()}
-              title="Copy URL"
+              title={showCopiedMessage ? 'Copied!' : 'Copy URL'}
             >
-              <Copy size={18} />
+              {showCopiedMessage ? (
+                <CheckCircle size={18} />
+              ) : (
+                <Copy size={18} />
+              )}
             </button>
             <button className="icon-btn-modern" onClick={onClose} title="Close">
               <X size={20} />
