@@ -1995,6 +1995,7 @@ h1 {
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
+  height: 90vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -2089,6 +2090,12 @@ h1 {
 
 .icon-btn-modern:active {
   transform: scale(0.95);
+}
+
+.icon-btn-modern.copied {
+  background: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
 }
 
 .bookmark-detail-body-modern {
