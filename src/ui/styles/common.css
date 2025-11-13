@@ -2101,10 +2101,12 @@ h1 {
 .bookmark-detail-body-modern {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+}
+
+.bookmark-detail-body-modern > * + * {
+  margin-top: 16px;
 }
 
 .detail-card-modern {
@@ -2138,9 +2140,10 @@ h1 {
 
 .detail-card-body {
   padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+}
+
+.detail-card-body > * + * {
+  margin-top: 14px;
 }
 
 .form-group-modern {
