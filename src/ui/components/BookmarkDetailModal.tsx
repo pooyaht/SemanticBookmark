@@ -1,3 +1,18 @@
+import {
+  X,
+  ExternalLink,
+  Copy,
+  Globe,
+  Tag as TagIcon,
+  FileText,
+  Download,
+  Search,
+  EyeOff,
+  Eye,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 import type { Bookmark } from '@/types/bookmark';
@@ -292,136 +307,210 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
     }
   };
 
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(bookmark.url);
+    } catch {
+      alert('Failed to copy URL to clipboard');
+    }
+  };
+
+  const handleOpenUrl = () => {
+    window.open(bookmark.url, '_blank', 'noopener,noreferrer');
+  };
+
+  const extractDomain = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace('www.', '');
+    } catch {
+      return 'Unknown';
+    }
+  };
+
   return (
     <div className="bookmark-modal-overlay" onClick={handleOverlayClick}>
-      <div className="bookmark-modal-content">
-        <div className="bookmark-modal-header">
-          <h2>Bookmark Details</h2>
-          <button className="icon-btn" onClick={onClose}>
-            <svg fill="currentColor" viewBox="0 0 24 24">
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-            </svg>
-          </button>
+      <div className="bookmark-detail-modal-modern">
+        <div className="bookmark-detail-header-modern">
+          <div className="bookmark-detail-header-left">
+            <div className="bookmark-detail-favicon">
+              {bookmark.favicon ? (
+                <img src={bookmark.favicon} alt="" />
+              ) : (
+                <Globe size={24} />
+              )}
+            </div>
+            <div className="bookmark-detail-header-info">
+              <h2 className="bookmark-detail-title-display">{bookmark.title}</h2>
+              <span className="bookmark-detail-domain">
+                {extractDomain(bookmark.url)}
+              </span>
+            </div>
+          </div>
+          <div className="bookmark-detail-header-actions">
+            <button
+              className="icon-btn-modern"
+              onClick={handleOpenUrl}
+              title="Open URL"
+            >
+              <ExternalLink size={18} />
+            </button>
+            <button
+              className="icon-btn-modern"
+              onClick={() => void handleCopyUrl()}
+              title="Copy URL"
+            >
+              <Copy size={18} />
+            </button>
+            <button className="icon-btn-modern" onClick={onClose} title="Close">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
-        <div className="bookmark-modal-body">
-          <div className="form-group">
-            <label className="form-label">Title</label>
-            <input
-              type="text"
-              className="form-input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">URL</label>
-            <a
-              href={bookmark.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bookmark-link"
-            >
-              {bookmark.url}
-            </a>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Tags</label>
-            <div className="assigned-tags">
-              {assignedTags.map((tag) => (
-                <span key={tag.id} className="assigned-tag">
-                  {tag.name}
-                  <button
-                    className="remove-tag-btn"
-                    onClick={() => handleRemoveTag(tag.id)}
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+        <div className="bookmark-detail-body-modern">
+          <div className="detail-card-modern">
+            <div className="detail-card-header">
+              <FileText size={18} />
+              <span>Basic Information</span>
             </div>
-            {unassignedTags.length > 0 ? (
-              <div className="tag-input-wrapper">
+            <div className="detail-card-body">
+              <div className="form-group-modern">
+                <label className="form-label-modern">Title</label>
                 <input
                   type="text"
-                  className="form-input"
-                  placeholder="Type to search and add tags..."
-                  value={tagInput}
-                  onChange={handleTagInputChange}
-                  onKeyDown={handleTagInputKeyDown}
-                  onFocus={() => setShowSuggestions(tagInput.length > 0)}
-                  onBlur={() =>
-                    setTimeout(() => setShowSuggestions(false), 200)
-                  }
+                  className="form-input-modern"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
                 />
-                {showSuggestions && filteredTags.length > 0 && (
-                  <div className="tag-suggestions-grouped">
-                    {Object.entries(groupedFilteredTags).map(
-                      ([source, tags]) =>
-                        tags.length > 0 ? (
-                          <div key={source} className="tag-group">
-                            <div className="tag-group-label">
-                              {tagSourceLabels[source as TagSource]}
-                            </div>
-                            {tags.map((tag) => (
-                              <div
-                                key={tag.id}
-                                className="tag-suggestion-item"
-                                onClick={() => handleAddTag(tag)}
-                              >
-                                {tag.name}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null
-                    )}
-                  </div>
-                )}
-                {showSuggestions && filteredTags.length === 0 && tagInput && (
-                  <div className="tag-suggestions-grouped">
-                    <div className="tag-no-results">
-                      No matching tags found. Only existing tags can be
-                      assigned.
-                    </div>
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="form-hint">
-                {availableTags.length === 0
-                  ? 'No tags available. Create tags in the Tags page first.'
-                  : 'All available tags have been assigned.'}
-              </div>
-            )}
-          </div>
 
-          {bookmark.aiSummary && (
-            <div className="form-group">
-              <label className="form-label">AI Summary</label>
-              <div className="form-value readonly">{bookmark.aiSummary}</div>
+              <div className="form-group-modern">
+                <label className="form-label-modern">URL</label>
+                <a
+                  href={bookmark.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="url-link-modern"
+                >
+                  {bookmark.url}
+                  <ExternalLink size={14} />
+                </a>
+              </div>
+
+              {bookmark.aiSummary && (
+                <div className="form-group-modern">
+                  <label className="form-label-modern">AI Summary</label>
+                  <div className="ai-summary-display">{bookmark.aiSummary}</div>
+                </div>
+              )}
+
+              <div className="form-group-modern">
+                <label className="form-label-modern">User Description</label>
+                <textarea
+                  className="form-textarea-modern"
+                  placeholder="Add your personal notes about this bookmark..."
+                  value={userDescription}
+                  onChange={(e) => setUserDescription(e.target.value)}
+                  rows={4}
+                />
+              </div>
             </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">User Description</label>
-            <textarea
-              className="form-input form-textarea"
-              placeholder="Add your own description..."
-              value={userDescription}
-              onChange={(e) => setUserDescription(e.target.value)}
-              rows={4}
-            />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Content Crawling</label>
-            <div className="crawl-depth-selector">
-              <label className="depth-label">
-                Crawl Depth:
+          <div className="detail-card-modern">
+            <div className="detail-card-header">
+              <TagIcon size={18} />
+              <span>Tags</span>
+            </div>
+            <div className="detail-card-body">
+              {assignedTags.length > 0 ? (
+                <div className="assigned-tags-modern">
+                  {assignedTags.map((tag) => (
+                    <span key={tag.id} className="tag-chip-modern">
+                      {tag.name}
+                      <button
+                        className="tag-chip-remove"
+                        onClick={() => handleRemoveTag(tag.id)}
+                        title="Remove tag"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state-inline">
+                  <TagIcon size={16} />
+                  <span>No tags assigned</span>
+                </div>
+              )}
+
+              {unassignedTags.length > 0 ? (
+                <div className="tag-input-wrapper-modern">
+                  <input
+                    type="text"
+                    className="form-input-modern"
+                    placeholder="Search and add tags..."
+                    value={tagInput}
+                    onChange={handleTagInputChange}
+                    onKeyDown={handleTagInputKeyDown}
+                    onFocus={() => setShowSuggestions(tagInput.length > 0)}
+                    onBlur={() =>
+                      setTimeout(() => setShowSuggestions(false), 200)
+                    }
+                  />
+                  {showSuggestions && filteredTags.length > 0 && (
+                    <div className="tag-suggestions-modern">
+                      {Object.entries(groupedFilteredTags).map(
+                        ([source, tags]) =>
+                          tags.length > 0 ? (
+                            <div key={source} className="tag-group-modern">
+                              <div className="tag-group-label-modern">
+                                {tagSourceLabels[source as TagSource]}
+                              </div>
+                              {tags.map((tag) => (
+                                <div
+                                  key={tag.id}
+                                  className="tag-suggestion-item-modern"
+                                  onClick={() => handleAddTag(tag)}
+                                >
+                                  {tag.name}
+                                </div>
+                              ))}
+                            </div>
+                          ) : null
+                      )}
+                    </div>
+                  )}
+                  {showSuggestions && filteredTags.length === 0 && tagInput && (
+                    <div className="tag-suggestions-modern">
+                      <div className="tag-no-results-modern">
+                        No matching tags found
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="form-hint-modern">
+                  {availableTags.length === 0
+                    ? 'No tags available. Create tags in the Tags page first.'
+                    : 'All available tags have been assigned.'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="detail-card-modern">
+            <div className="detail-card-header">
+              <Download size={18} />
+              <span>Content Crawling</span>
+            </div>
+            <div className="detail-card-body">
+              <div className="form-group-modern">
+                <label className="form-label-modern">Crawl Depth</label>
                 <select
-                  className="depth-select"
+                  className="form-select-modern"
                   value={crawlDepth ?? ''}
                   onChange={(e) =>
                     setCrawlDepth(
@@ -437,224 +526,298 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
                   <option value="5">5 - Original + 5 direct links</option>
                   <option value="10">10 - Original + 10 direct links</option>
                 </select>
-              </label>
-            </div>
-            <div className="crawl-controls">
-              <button
-                className="btn btn-primary btn-small"
-                onClick={() => void handleCrawl()}
-                disabled={isCrawling}
-              >
-                {isCrawling ? 'Fetching Content...' : 'Fetch Content'}
-              </button>
-              {content.length > 0 && (
-                <div className="crawl-status">
-                  <span className="status-badge success">
-                    Content crawled ({content.length} page
-                    {content.length > 1 ? 's' : ''})
-                  </span>
-                  {content[0] && (
-                    <span className="crawl-date">
-                      Last crawled:{' '}
-                      {new Date(content[0].fetchedAt).toLocaleString()}
+              </div>
+
+              <div className="status-action-row">
+                {content.length > 0 ? (
+                  <div className="status-badge-modern status-success">
+                    <CheckCircle size={14} />
+                    <span>
+                      Crawled ({content.length} page
+                      {content.length > 1 ? 's' : ''})
                     </span>
+                  </div>
+                ) : (
+                  <div className="status-badge-modern status-neutral">
+                    <AlertCircle size={14} />
+                    <span>Not crawled yet</span>
+                  </div>
+                )}
+
+                <button
+                  className="btn btn-primary btn-small"
+                  onClick={() => void handleCrawl()}
+                  disabled={isCrawling}
+                >
+                  {isCrawling ? (
+                    <>
+                      <Loader2 size={14} className="spin-icon" />
+                      Crawling...
+                    </>
+                  ) : (
+                    'Crawl Content'
                   )}
+                </button>
+              </div>
+
+              {content.length > 0 && content[0] && (
+                <div className="form-hint-modern">
+                  Last crawled: {new Date(content[0].fetchedAt).toLocaleString()}
                 </div>
               )}
-              {content.length === 0 && !isCrawling && (
-                <span className="status-badge neutral">Not crawled yet</span>
+
+              {content.length > 0 && (
+                <>
+                  <button
+                    className="btn btn-secondary btn-small"
+                    onClick={() => setShowContent(!showContent)}
+                    style={{ marginTop: '12px' }}
+                  >
+                    {showContent ? 'Hide Preview' : 'Show Preview'}
+                  </button>
+
+                  {showContent && (
+                    <div className="content-preview-container">
+                      {content.map((c) => {
+                        const isExpanded = expandedContent.has(c.url);
+                        const shouldTruncate = c.content.length > 300;
+                        const hasError = !!c.fetchError;
+
+                        return (
+                          <div
+                            key={c.url}
+                            className={`content-preview-card ${hasError ? 'has-error' : ''}`}
+                          >
+                            <div className="content-preview-header">
+                              <span
+                                className={`content-type-badge ${c.type === ContentType.PRIMARY ? 'primary' : 'related'}`}
+                              >
+                                {c.type === ContentType.PRIMARY
+                                  ? 'Primary'
+                                  : 'Related'}
+                              </span>
+                              <strong className="content-preview-title">
+                                {c.title}
+                              </strong>
+                            </div>
+
+                            {hasError ? (
+                              <div className="content-error-modern">
+                                <AlertCircle size={16} />
+                                <div>
+                                  <div className="error-message-modern">
+                                    {c.fetchError}
+                                  </div>
+                                  <div className="error-hint-modern">
+                                    Unable to fetch this page
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {c.description && (
+                                  <p className="content-preview-description">
+                                    {c.description}
+                                  </p>
+                                )}
+                                <div className="content-preview-text">
+                                  {isExpanded || !shouldTruncate
+                                    ? c.content
+                                    : `${c.content.substring(0, 300)}...`}
+                                </div>
+                                {shouldTruncate && (
+                                  <button
+                                    className="btn btn-text btn-small"
+                                    onClick={() => toggleContentExpansion(c.url)}
+                                  >
+                                    {isExpanded ? 'Show Less' : 'Read More'}
+                                  </button>
+                                )}
+                              </>
+                            )}
+
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="content-preview-url"
+                            >
+                              <ExternalLink size={12} />
+                              {c.url}
+                            </a>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {relatedPages.length > 0 && (
+                <div className="related-pages-section">
+                  <div className="related-pages-header">
+                    Related Pages ({relatedPages.length})
+                  </div>
+                  <div className="related-pages-list-modern">
+                    {relatedPages.map((page) => (
+                      <div key={page.id} className="related-page-item-modern">
+                        <a
+                          href={page.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="related-page-link-modern"
+                        >
+                          <Globe size={14} />
+                          {page.title || page.url}
+                        </a>
+                        <span className="related-page-depth">
+                          Depth {page.depth}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-            {content.length > 0 && (
-              <button
-                className="btn btn-secondary btn-small"
-                onClick={() => setShowContent(!showContent)}
-                style={{ marginTop: '8px' }}
-              >
-                {showContent ? 'Hide Content Preview' : 'Show Content Preview'}
-              </button>
-            )}
           </div>
 
-          {showContent && content.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Content Preview</label>
-              {content.map((c) => {
-                const isExpanded = expandedContent.has(c.url);
-                const shouldTruncate = c.content.length > 300;
-                const hasError = !!c.fetchError;
-
-                return (
-                  <div
-                    key={c.url}
-                    className={`content-preview ${hasError ? 'content-error' : ''}`}
-                  >
-                    <div className="content-header">
-                      <span className="content-type-badge">
-                        {c.type === ContentType.PRIMARY ? 'Primary' : 'Related'}
-                      </span>
-                      <strong className="content-title">{c.title}</strong>
-                    </div>
-
-                    {hasError ? (
-                      <div className="content-error-box">
-                        <div className="error-icon">⚠️</div>
-                        <div className="error-details">
-                          <div className="error-message">{c.fetchError}</div>
-                          <div className="error-hint">
-                            This page could not be fetched. The URL may be
-                            invalid, the server may be down, or you may not have
-                            permission to access it.
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {c.description && (
-                          <p className="content-description">{c.description}</p>
-                        )}
-                        <div className="content-text">
-                          {isExpanded || !shouldTruncate
-                            ? c.content
-                            : `${c.content.substring(0, 300)}...`}
-                        </div>
-                        {shouldTruncate && (
-                          <button
-                            className="btn btn-secondary btn-small"
-                            onClick={() => toggleContentExpansion(c.url)}
-                            style={{ marginTop: '8px' }}
-                          >
-                            {isExpanded ? 'Show Less' : 'Read More'}
-                          </button>
-                        )}
-                      </>
-                    )}
-
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="content-url"
-                    >
-                      {c.url}
-                    </a>
-                  </div>
-                );
-              })}
+          <div className="detail-card-modern">
+            <div className="detail-card-header">
+              <Search size={18} />
+              <span>Semantic Search</span>
             </div>
-          )}
-
-          {relatedPages.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">
-                Related Pages ({relatedPages.length})
-              </label>
-              <div className="related-pages-list">
-                {relatedPages.map((page) => (
-                  <div key={page.id} className="related-page-item">
-                    <a
-                      href={page.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="related-page-link"
-                    >
-                      {page.title || page.url}
-                    </a>
-                    <span className="related-page-meta">
-                      Depth {page.depth}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="form-group">
-            <label className="form-label">Semantic Search</label>
-            <div className="embedding-controls">
+            <div className="detail-card-body">
               {hasActiveProvider ? (
                 <>
-                  <div className="embedding-status-row">
-                    <span
-                      className={`status-badge ${isIndexed ? 'success' : 'neutral'}`}
+                  <div className="status-action-row">
+                    <div
+                      className={`status-badge-modern ${isIndexed ? 'status-success' : 'status-neutral'}`}
                     >
-                      {isIndexed ? '✓ Indexed' : '○ Not indexed'}
-                    </span>
+                      {isIndexed ? (
+                        <>
+                          <CheckCircle size={14} />
+                          <span>Indexed</span>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle size={14} />
+                          <span>Not indexed</span>
+                        </>
+                      )}
+                    </div>
                     <button
                       className="btn btn-primary btn-small"
-                      onClick={() => {
-                        void handleGenerateEmbedding();
-                      }}
+                      onClick={() => void handleGenerateEmbedding()}
                       disabled={isIndexing}
                     >
-                      {isIndexing
-                        ? 'Generating...'
-                        : isIndexed
-                          ? 'Regenerate Embedding'
-                          : 'Generate Embedding'}
+                      {isIndexing ? (
+                        <>
+                          <Loader2 size={14} className="spin-icon" />
+                          Generating...
+                        </>
+                      ) : isIndexed ? (
+                        'Regenerate'
+                      ) : (
+                        'Generate Embedding'
+                      )}
                     </button>
                   </div>
+
                   {aiEnabled && (
-                    <div className="embedding-status-row">
-                      <span
-                        className={`status-badge ${bookmark.aiSummary ? 'success' : 'neutral'}`}
+                    <div className="status-action-row">
+                      <div
+                        className={`status-badge-modern ${bookmark.aiSummary ? 'status-success' : 'status-neutral'}`}
                       >
-                        {bookmark.aiSummary
-                          ? '✓ AI Summary'
-                          : '○ No AI Summary'}
-                      </span>
+                        {bookmark.aiSummary ? (
+                          <>
+                            <CheckCircle size={14} />
+                            <span>AI Summary</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle size={14} />
+                            <span>No AI Summary</span>
+                          </>
+                        )}
+                      </div>
                       <button
                         className="btn btn-secondary btn-small"
-                        onClick={() => {
-                          void handleGenerateAISummary();
-                        }}
+                        onClick={() => void handleGenerateAISummary()}
                         disabled={isGeneratingSummary || content.length === 0}
                       >
-                        {isGeneratingSummary
-                          ? 'Generating...'
-                          : bookmark.aiSummary
-                            ? 'Regenerate AI Summary'
-                            : 'Generate AI Summary'}
+                        {isGeneratingSummary ? (
+                          <>
+                            <Loader2 size={14} className="spin-icon" />
+                            Generating...
+                          </>
+                        ) : bookmark.aiSummary ? (
+                          'Regenerate'
+                        ) : (
+                          'Generate AI Summary'
+                        )}
                       </button>
                     </div>
                   )}
-                  <div className="form-hint">
-                    Generate embedding to enable semantic search for this
-                    bookmark.{' '}
-                    {aiEnabled && 'AI summaries enhance search quality.'}
+
+                  <div className="form-hint-modern">
+                    Generate embedding to enable semantic search.
+                    {aiEnabled && ' AI summaries enhance search quality.'}
                   </div>
                 </>
               ) : (
                 <>
-                  <span className="status-badge neutral">
-                    No embedding provider
-                  </span>
-                  <div className="form-hint">
+                  <div className="status-badge-modern status-warning">
+                    <AlertCircle size={14} />
+                    <span>No provider configured</span>
+                  </div>
+                  <div className="form-hint-modern">
                     Configure an embedding provider in settings to enable
-                    semantic search
+                    semantic search.
                   </div>
                 </>
               )}
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Visibility</label>
-            <button
-              className={`btn ${bookmark.hidden ? 'btn-secondary' : 'btn-danger'} btn-small`}
-              onClick={() => void handleToggleHidden()}
-            >
-              {bookmark.hidden ? 'Unhide Bookmark' : 'Hide Bookmark'}
-            </button>
-            {bookmark.hidden && (
-              <div className="form-hint">
-                Hidden bookmarks are excluded from search results
+          <div className="detail-card-modern">
+            <div className="detail-card-header">
+              {bookmark.hidden ? <EyeOff size={18} /> : <Eye size={18} />}
+              <span>Visibility</span>
+            </div>
+            <div className="detail-card-body">
+              <div className="status-action-row">
+                <div
+                  className={`status-badge-modern ${bookmark.hidden ? 'status-warning' : 'status-success'}`}
+                >
+                  {bookmark.hidden ? (
+                    <>
+                      <EyeOff size={14} />
+                      <span>Hidden</span>
+                    </>
+                  ) : (
+                    <>
+                      <Eye size={14} />
+                      <span>Visible</span>
+                    </>
+                  )}
+                </div>
+                <button
+                  className={`btn btn-small ${bookmark.hidden ? 'btn-secondary' : 'btn-danger'}`}
+                  onClick={() => void handleToggleHidden()}
+                >
+                  {bookmark.hidden ? 'Unhide Bookmark' : 'Hide Bookmark'}
+                </button>
               </div>
-            )}
+              {bookmark.hidden && (
+                <div className="form-hint-modern">
+                  Hidden bookmarks are excluded from search results
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="bookmark-modal-footer">
+        <div className="bookmark-modal-footer-sticky">
           <button className="btn btn-secondary" onClick={onClose}>
             Close
           </button>
@@ -663,7 +826,14 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
             onClick={() => void handleSave()}
             disabled={isSaving}
           >
-            {isSaving ? 'Saving...' : 'Save'}
+            {isSaving ? (
+              <>
+                <Loader2 size={14} className="spin-icon" />
+                Saving...
+              </>
+            ) : (
+              'Save'
+            )}
           </button>
         </div>
       </div>
