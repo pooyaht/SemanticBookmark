@@ -40,6 +40,7 @@ export const BookmarksPage: React.FC = () => {
     current: number;
     total: number;
   } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [bookmarkStatuses, setBookmarkStatuses] = useState<
     Map<string, BookmarkStatus>
@@ -66,21 +67,26 @@ export const BookmarksPage: React.FC = () => {
   }, []);
 
   const loadBookmarks = async () => {
-    const allBookmarks = await bookmarkService.getAllBookmarks();
-    setBookmarks(allBookmarks);
+    setIsLoading(true);
+    try {
+      const allBookmarks = await bookmarkService.getAllBookmarks();
+      setBookmarks(allBookmarks);
 
-    const tagsMap = new Map<string, string[]>();
-    for (const bookmark of allBookmarks) {
-      const tags = await tagService.getBookmarkTags(bookmark.id);
-      tagsMap.set(
-        bookmark.id,
-        tags.map((t) => t.id)
-      );
+      const tagsMap = new Map<string, string[]>();
+      for (const bookmark of allBookmarks) {
+        const tags = await tagService.getBookmarkTags(bookmark.id);
+        tagsMap.set(
+          bookmark.id,
+          tags.map((t) => t.id)
+        );
+      }
+      setBookmarkTags(tagsMap);
+
+      const statuses = await statusService.getBatchStatus(allBookmarks);
+      setBookmarkStatuses(statuses);
+    } finally {
+      setIsLoading(false);
     }
-    setBookmarkTags(tagsMap);
-
-    const statuses = await statusService.getBatchStatus(allBookmarks);
-    setBookmarkStatuses(statuses);
   };
 
   const loadTags = async () => {
@@ -358,13 +364,16 @@ export const BookmarksPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px' }}>
-        Showing {filteredBookmarks.length} of {bookmarks.length} bookmark
-        {bookmarks.length !== 1 ? 's' : ''}
-      </div>
+      {!isLoading && (
+        <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px' }}>
+          Showing {filteredBookmarks.length} of {bookmarks.length} bookmark
+          {bookmarks.length !== 1 ? 's' : ''}
+        </div>
+      )}
 
       <BookmarkList
         bookmarks={filteredBookmarks}
+        isLoading={isLoading}
         onBookmarkClick={handleBookmarkClick}
       />
 

@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
+import { LoadingSpinner } from './LoadingSpinner';
+
 import type { BookmarkStatus } from '@/services/BookmarkStatusService';
 import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
@@ -20,11 +22,13 @@ const statusService = BookmarkStatusService.getInstance();
 
 interface BookmarkListProps {
   bookmarks: Bookmark[];
+  isLoading: boolean;
   onBookmarkClick: (bookmark: Bookmark) => void;
 }
 
 export const BookmarkList: React.FC<BookmarkListProps> = ({
   bookmarks,
+  isLoading,
   onBookmarkClick,
 }) => {
   const [bookmarkTags, setBookmarkTags] = useState<Map<string, Tag[]>>(
@@ -63,6 +67,10 @@ export const BookmarkList: React.FC<BookmarkListProps> = ({
       return url;
     }
   };
+
+  if (isLoading) {
+    return <LoadingSpinner size="large" message="Loading bookmarks..." />;
+  }
 
   if (bookmarks.length === 0) {
     return (
