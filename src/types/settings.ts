@@ -16,7 +16,7 @@ export const DEFAULT_CRAWLER_SETTINGS: CrawlerSettings = {
   defaultDepth: 0,
   maxLinksPerPage: 10,
   sameOriginOnly: true,
-  rateLimitMs: 1000,
+  rateLimitMs: 200,
   respectRobotsTxt: true,
   autoRetryOnFailure: true,
   maxRetries: 3,

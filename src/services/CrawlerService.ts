@@ -40,6 +40,9 @@ export class CrawlerService {
       effectiveDepth,
     });
 
+    await this.deleteBookmarkContent(bookmarkId);
+    console.log('[CrawlerService] Cleaned up existing content before crawl');
+
     const primaryContent = await this.fetchAndExtractContent(
       bookmarkUrl,
       bookmarkId,

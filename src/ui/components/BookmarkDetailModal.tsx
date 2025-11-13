@@ -4,13 +4,19 @@ import type { Bookmark } from '@/types/bookmark';
 import type { Content, RelatedPage } from '@/types/content';
 import type { Tag } from '@/types/tag';
 
+import { AIService } from '@/services/AIService';
 import { BookmarkService } from '@/services/BookmarkService';
+import { EmbeddingProviderService } from '@/services/EmbeddingProviderService';
+import { IndexingService } from '@/services/IndexingService';
 import { TagService } from '@/services/TagService';
 import { ContentType } from '@/types/content';
 import { TagAssignmentSource, TagSource } from '@/types/tag';
 
 const bookmarkService = BookmarkService.getInstance();
 const tagService = TagService.getInstance();
+const indexingService = IndexingService.getInstance();
+const aiService = AIService.getInstance();
+const providerService = EmbeddingProviderService.getInstance();
 
 interface BookmarkDetailModalProps {
   bookmark: Bookmark;
@@ -43,6 +49,11 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
   const [expandedContent, setExpandedContent] = useState<Set<string>>(
     new Set()
   );
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isIndexed, setIsIndexed] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [hasActiveProvider, setHasActiveProvider] = useState(false);
 
   useEffect(() => {
     void loadData();
@@ -72,6 +83,15 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
 
     const pages = await bookmarkService.getRelatedPages(bookmark.id);
     setRelatedPages(pages);
+
+    const indexed = await indexingService.isBookmarkIndexed(bookmark.id);
+    setIsIndexed(indexed);
+
+    const aiServiceEnabled = await aiService.isAIEnabled();
+    setAiEnabled(aiServiceEnabled);
+
+    const activeProvider = await providerService.getActiveProvider();
+    setHasActiveProvider(!!activeProvider);
   };
 
   const handleSave = async () => {
@@ -150,6 +170,54 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
       );
     } finally {
       setIsCrawling(false);
+    }
+  };
+
+  const handleGenerateEmbedding = async () => {
+    if (!hasActiveProvider) {
+      alert('No active embedding provider. Please configure one in settings.');
+      return;
+    }
+
+    setIsIndexing(true);
+    try {
+      const result = await indexingService.indexBookmark(bookmark.id);
+      if (result.success) {
+        alert(
+          `Embedding generated successfully!\nTokens: ${result.tokenCount}${result.isTruncated ? ' (truncated)' : ''}`
+        );
+        await loadData();
+      } else {
+        alert(`Failed to generate embedding: ${result.error}`);
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate embedding: ${errorMessage}`);
+    } finally {
+      setIsIndexing(false);
+    }
+  };
+
+  const handleGenerateAISummary = async () => {
+    if (content.length === 0) {
+      alert(
+        'Please crawl the bookmark content first before generating a summary.'
+      );
+      return;
+    }
+
+    setIsGeneratingSummary(true);
+    try {
+      await aiService.generateSummary(bookmark.id);
+      alert('AI summary generated successfully!');
+      await loadData();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to generate AI summary: ${errorMessage}`);
+    } finally {
+      setIsGeneratingSummary(false);
     }
   };
 
@@ -502,15 +570,71 @@ export const BookmarkDetailModal: React.FC<BookmarkDetailModalProps> = ({
           )}
 
           <div className="form-group">
-            <label className="form-label">Embedding Status</label>
-            <div className="embedding-status">
-              <span className="status-badge neutral">
-                Embedding support coming soon
-              </span>
-            </div>
-            <div className="form-hint">
-              Configure an embedding provider in settings to enable semantic
-              search
+            <label className="form-label">Semantic Search</label>
+            <div className="embedding-controls">
+              {hasActiveProvider ? (
+                <>
+                  <div className="embedding-status-row">
+                    <span
+                      className={`status-badge ${isIndexed ? 'success' : 'neutral'}`}
+                    >
+                      {isIndexed ? '✓ Indexed' : '○ Not indexed'}
+                    </span>
+                    <button
+                      className="btn btn-primary btn-small"
+                      onClick={() => {
+                        void handleGenerateEmbedding();
+                      }}
+                      disabled={isIndexing}
+                    >
+                      {isIndexing
+                        ? 'Generating...'
+                        : isIndexed
+                          ? 'Regenerate Embedding'
+                          : 'Generate Embedding'}
+                    </button>
+                  </div>
+                  {aiEnabled && (
+                    <div className="embedding-status-row">
+                      <span
+                        className={`status-badge ${bookmark.aiSummary ? 'success' : 'neutral'}`}
+                      >
+                        {bookmark.aiSummary
+                          ? '✓ AI Summary'
+                          : '○ No AI Summary'}
+                      </span>
+                      <button
+                        className="btn btn-secondary btn-small"
+                        onClick={() => {
+                          void handleGenerateAISummary();
+                        }}
+                        disabled={isGeneratingSummary || content.length === 0}
+                      >
+                        {isGeneratingSummary
+                          ? 'Generating...'
+                          : bookmark.aiSummary
+                            ? 'Regenerate AI Summary'
+                            : 'Generate AI Summary'}
+                      </button>
+                    </div>
+                  )}
+                  <div className="form-hint">
+                    Generate embedding to enable semantic search for this
+                    bookmark.{' '}
+                    {aiEnabled && 'AI summaries enhance search quality.'}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="status-badge neutral">
+                    No embedding provider
+                  </span>
+                  <div className="form-hint">
+                    Configure an embedding provider in settings to enable
+                    semantic search
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

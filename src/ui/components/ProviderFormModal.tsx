@@ -27,6 +27,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
   const [modelName, setModelName] = useState('');
   const [documentPrefix, setDocumentPrefix] = useState('');
   const [documentSuffix, setDocumentSuffix] = useState('');
+  const [maxContextTokens, setMaxContextTokens] = useState('512');
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
     success: boolean;
@@ -55,6 +56,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       setModelName(provider.modelName);
       setDocumentPrefix(provider.documentPrefix ?? '');
       setDocumentSuffix(provider.documentSuffix ?? '');
+      setMaxContextTokens(String(provider.maxContextTokens ?? 512));
     }
   };
 
@@ -65,6 +67,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     setModelName('');
     setDocumentPrefix('');
     setDocumentSuffix('');
+    setMaxContextTokens('512');
     setTesting(false);
     setTestResult(null);
     setSaving(false);
@@ -130,6 +133,12 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
       return;
     }
 
+    const maxTokens = parseInt(maxContextTokens);
+    if (isNaN(maxTokens) || maxTokens < 1 || maxTokens > 32000) {
+      alert('Max context tokens must be a number between 1 and 32000');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -141,6 +150,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           modelName,
           documentPrefix: documentPrefix || undefined,
           documentSuffix: documentSuffix || undefined,
+          maxContextTokens: maxTokens,
         });
       } else {
         await providerService.createProvider({
@@ -151,6 +161,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
           modelName,
           documentPrefix: documentPrefix || undefined,
           documentSuffix: documentSuffix || undefined,
+          maxContextTokens: maxTokens,
         });
       }
 
@@ -227,6 +238,26 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
               placeholder="nomic-embed-text"
             />
           </label>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">
+            Max Context Tokens *
+            <input
+              type="number"
+              className="form-input"
+              value={maxContextTokens}
+              onChange={(e) => setMaxContextTokens(e.target.value)}
+              placeholder="512"
+              min="1"
+              max="32000"
+            />
+          </label>
+          <p className="form-hint">
+            Maximum tokens for content. Content exceeding this limit will be
+            truncated. Default: 512 tokens. Common limits: 256-512 (small
+            models), 512-1024 (medium), 2048+ (large).
+          </p>
         </div>
 
         <div className="form-group">

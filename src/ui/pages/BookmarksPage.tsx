@@ -4,14 +4,21 @@ import { BookmarkDetailModal } from '../components/BookmarkDetailModal';
 import { BookmarkList } from '../components/BookmarkList';
 import { Layout } from '../components/Layout';
 
+import type { BookmarkStatus } from '@/services/BookmarkStatusService';
 import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
 
 import { BookmarkService } from '@/services/BookmarkService';
+import { BookmarkStatusService } from '@/services/BookmarkStatusService';
+import { EmbeddingProviderService } from '@/services/EmbeddingProviderService';
+import { IndexingService } from '@/services/IndexingService';
 import { TagService } from '@/services/TagService';
 
 const bookmarkService = BookmarkService.getInstance();
 const tagService = TagService.getInstance();
+const indexingService = IndexingService.getInstance();
+const providerService = EmbeddingProviderService.getInstance();
+const statusService = BookmarkStatusService.getInstance();
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden';
 
@@ -26,11 +33,28 @@ export const BookmarksPage: React.FC = () => {
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isIndexing, setIsIndexing] = useState(false);
+  const [indexingProgress, setIndexingProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
+
+  const [bookmarkStatuses, setBookmarkStatuses] = useState<
+    Map<string, BookmarkStatus>
+  >(new Map());
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
   const [visibilityFilter, setVisibilityFilter] =
     useState<VisibilityFilter>('visible');
+
+  const [statusFilters, setStatusFilters] = useState({
+    crawled: 'all' as 'all' | 'yes' | 'no',
+    indexed: 'all' as 'all' | 'yes' | 'no',
+    aiSummary: 'all' as 'all' | 'yes' | 'no',
+    userDescription: 'all' as 'all' | 'yes' | 'no',
+    stale: 'all' as 'all' | 'yes' | 'no',
+  });
 
   useEffect(() => {
     void loadBookmarks();
@@ -50,6 +74,9 @@ export const BookmarksPage: React.FC = () => {
       );
     }
     setBookmarkTags(tagsMap);
+
+    const statuses = await statusService.getBatchStatus(allBookmarks);
+    setBookmarkStatuses(statuses);
   };
 
   const loadTags = async () => {
@@ -73,6 +100,45 @@ export const BookmarksPage: React.FC = () => {
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncMessage(null), 3000);
+    }
+  };
+
+  const handleIndexAll = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    if (!activeProvider) {
+      alert('No active embedding provider. Please configure one in settings.');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will generate embeddings for all ${bookmarks.length} bookmarks. This may take a while. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsIndexing(true);
+    setIndexingProgress({ current: 0, total: bookmarks.length });
+
+    try {
+      await indexingService.indexAllBookmarks((progress) => {
+        setIndexingProgress({
+          current: progress.current,
+          total: progress.total,
+        });
+      });
+
+      alert(
+        `Indexing complete!\nSucceeded: ${indexingProgress?.current ?? 0} / ${indexingProgress?.total ?? 0}`
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Indexing failed: ${errorMessage}`);
+    } finally {
+      setIsIndexing(false);
+      setIndexingProgress(null);
     }
   };
 
@@ -106,16 +172,67 @@ export const BookmarksPage: React.FC = () => {
         return false;
       }
 
-      if (selectedTagIds.size === 0) {
-        return true;
+      if (selectedTagIds.size > 0) {
+        const bookmarkTagIds = bookmarkTags.get(bookmark.id) ?? [];
+        const matchesTags = Array.from(selectedTagIds).every((tagId) =>
+          bookmarkTagIds.includes(tagId)
+        );
+        if (!matchesTags) {
+          return false;
+        }
       }
 
-      const bookmarkTagIds = bookmarkTags.get(bookmark.id) ?? [];
-      return Array.from(selectedTagIds).every((tagId) =>
-        bookmarkTagIds.includes(tagId)
-      );
+      const status = bookmarkStatuses.get(bookmark.id);
+      if (!status) {
+        return false;
+      }
+
+      if (statusFilters.crawled !== 'all') {
+        const shouldBeCrawled = statusFilters.crawled === 'yes';
+        if (status.isCrawled !== shouldBeCrawled) {
+          return false;
+        }
+      }
+
+      if (statusFilters.indexed !== 'all') {
+        const shouldBeIndexed = statusFilters.indexed === 'yes';
+        if (status.isIndexed !== shouldBeIndexed) {
+          return false;
+        }
+      }
+
+      if (statusFilters.aiSummary !== 'all') {
+        const shouldHaveAISummary = statusFilters.aiSummary === 'yes';
+        if (status.hasAISummary !== shouldHaveAISummary) {
+          return false;
+        }
+      }
+
+      if (statusFilters.userDescription !== 'all') {
+        const shouldHaveUserDesc = statusFilters.userDescription === 'yes';
+        if (status.hasUserDescription !== shouldHaveUserDesc) {
+          return false;
+        }
+      }
+
+      if (statusFilters.stale !== 'all') {
+        const shouldBeStale = statusFilters.stale === 'yes';
+        if (status.isStale !== shouldBeStale) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [bookmarks, bookmarkTags, searchTerm, visibilityFilter, selectedTagIds]);
+  }, [
+    bookmarks,
+    bookmarkTags,
+    searchTerm,
+    visibilityFilter,
+    selectedTagIds,
+    statusFilters,
+    bookmarkStatuses,
+  ]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTagIds((prev) => {
@@ -137,13 +254,24 @@ export const BookmarksPage: React.FC = () => {
     <Layout currentPage="bookmarks">
       <div className="header">
         <h1>Bookmarks</h1>
-        <button
-          className="btn btn-primary btn-small"
-          onClick={() => void handleSync()}
-          disabled={isSyncing}
-        >
-          {isSyncing ? 'Syncing...' : 'Sync'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={() => {
+              void handleIndexAll();
+            }}
+            disabled={isIndexing || isSyncing}
+          >
+            {isIndexing ? 'Indexing...' : 'Index All'}
+          </button>
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => void handleSync()}
+            disabled={isSyncing || isIndexing}
+          >
+            {isSyncing ? 'Syncing...' : 'Sync'}
+          </button>
+        </div>
       </div>
 
       {syncMessage && (
@@ -158,6 +286,22 @@ export const BookmarksPage: React.FC = () => {
           }}
         >
           {syncMessage}
+        </div>
+      )}
+
+      {indexingProgress && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#e3f2fd',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#1565c0',
+          }}
+        >
+          Indexing: {indexingProgress.current} / {indexingProgress.total}{' '}
+          bookmarks
         </div>
       )}
 
@@ -257,6 +401,271 @@ export const BookmarksPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        <div style={{ marginTop: '16px' }}>
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              color: '#666',
+              marginBottom: '6px',
+            }}
+          >
+            Status Filters
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '12px',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                Crawled
+              </div>
+              <div className="category-filters">
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="crawled"
+                    checked={statusFilters.crawled === 'all'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, crawled: 'all' })
+                    }
+                  />
+                  <span>All</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="crawled"
+                    checked={statusFilters.crawled === 'yes'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, crawled: 'yes' })
+                    }
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="crawled"
+                    checked={statusFilters.crawled === 'no'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, crawled: 'no' })
+                    }
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                Indexed
+              </div>
+              <div className="category-filters">
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="indexed"
+                    checked={statusFilters.indexed === 'all'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, indexed: 'all' })
+                    }
+                  />
+                  <span>All</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="indexed"
+                    checked={statusFilters.indexed === 'yes'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, indexed: 'yes' })
+                    }
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="indexed"
+                    checked={statusFilters.indexed === 'no'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, indexed: 'no' })
+                    }
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                AI Summary
+              </div>
+              <div className="category-filters">
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="aiSummary"
+                    checked={statusFilters.aiSummary === 'all'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, aiSummary: 'all' })
+                    }
+                  />
+                  <span>All</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="aiSummary"
+                    checked={statusFilters.aiSummary === 'yes'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, aiSummary: 'yes' })
+                    }
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="aiSummary"
+                    checked={statusFilters.aiSummary === 'no'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, aiSummary: 'no' })
+                    }
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                User Description
+              </div>
+              <div className="category-filters">
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="userDescription"
+                    checked={statusFilters.userDescription === 'all'}
+                    onChange={() =>
+                      setStatusFilters({
+                        ...statusFilters,
+                        userDescription: 'all',
+                      })
+                    }
+                  />
+                  <span>All</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="userDescription"
+                    checked={statusFilters.userDescription === 'yes'}
+                    onChange={() =>
+                      setStatusFilters({
+                        ...statusFilters,
+                        userDescription: 'yes',
+                      })
+                    }
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="userDescription"
+                    checked={statusFilters.userDescription === 'no'}
+                    onChange={() =>
+                      setStatusFilters({
+                        ...statusFilters,
+                        userDescription: 'no',
+                      })
+                    }
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  marginBottom: '4px',
+                }}
+              >
+                Stale Embeddings
+              </div>
+              <div className="category-filters">
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="stale"
+                    checked={statusFilters.stale === 'all'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, stale: 'all' })
+                    }
+                  />
+                  <span>All</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="stale"
+                    checked={statusFilters.stale === 'yes'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, stale: 'yes' })
+                    }
+                  />
+                  <span>Yes</span>
+                </label>
+                <label className="category-filter-item">
+                  <input
+                    type="radio"
+                    name="stale"
+                    checked={statusFilters.stale === 'no'}
+                    onChange={() =>
+                      setStatusFilters({ ...statusFilters, stale: 'no' })
+                    }
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{ fontSize: '12px', color: '#999', marginBottom: '12px' }}>

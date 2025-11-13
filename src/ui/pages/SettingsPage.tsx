@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+import { Accordion } from '../components/Accordion';
 import { Layout } from '../components/Layout';
 import { ProviderFormModal } from '../components/ProviderFormModal';
 
@@ -282,29 +283,28 @@ export const SettingsPage: React.FC = () => {
           >
             Reset to Defaults
           </button>
-          {hasChanges && (
+          {(hasChanges || hasAiChanges) && (
             <button
               className="btn btn-primary btn-small"
               onClick={() => {
                 void handleSave();
+                void handleSaveAISettings();
               }}
               disabled={saving}
               style={{ marginLeft: '8px' }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? 'Saving...' : 'Save All Changes'}
             </button>
           )}
         </div>
       </div>
 
       <div className="settings-container">
-        <div className="settings-section">
-          <h2 className="settings-section-title">Content Crawling</h2>
-          <p className="settings-section-description">
-            Configure how the extension fetches and indexes webpage content for
-            your bookmarks.
-          </p>
-
+        <Accordion
+          title="Content Crawling Settings"
+          description="Configure how the extension fetches and indexes webpage content for your bookmarks"
+          defaultOpen={true}
+        >
           <div className="settings-group">
             <div className="setting-item">
               <div className="setting-header">
@@ -394,11 +394,12 @@ export const SettingsPage: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
+        </Accordion>
 
-        <div className="settings-section">
-          <h2 className="settings-section-title">Advanced Options</h2>
-
+        <Accordion
+          title="Advanced Crawler Options"
+          description="Fine-tune crawler behavior, rate limiting, and retry logic"
+        >
           <div className="settings-group">
             <div className="setting-item">
               <div className="setting-header">
@@ -420,7 +421,7 @@ export const SettingsPage: React.FC = () => {
               />
               <p className="setting-description">
                 Minimum time between requests to avoid overwhelming servers.
-                Higher values are more polite but slower.
+                Higher values are more polite but slower. Default: 200ms.
               </p>
             </div>
 
@@ -483,17 +484,13 @@ export const SettingsPage: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </Accordion>
 
-        <div className="settings-section">
-          <h2 className="settings-section-title">
-            Embedding Providers (Required)
-          </h2>
-          <p className="settings-section-description">
-            Configure embedding providers for semantic search. At least one
-            provider must be configured and active.
-          </p>
-
+        <Accordion
+          title="Embedding Providers (Required)"
+          description="Configure embedding providers for semantic search. At least one provider must be active."
+          defaultOpen={true}
+        >
           <div className="settings-group">
             {activeProvider && (
               <div className="provider-card active">
@@ -534,6 +531,14 @@ export const SettingsPage: React.FC = () => {
                       {activeProvider.modelName}
                     </span>
                   </div>
+                  {activeProvider.maxContextTokens && (
+                    <div className="provider-detail-item">
+                      <span className="provider-detail-label">Max Tokens:</span>
+                      <span className="provider-detail-value">
+                        {activeProvider.maxContextTokens}
+                      </span>
+                    </div>
+                  )}
                   {providerStats[activeProvider.id] && (
                     <div className="provider-detail-item">
                       <span className="provider-detail-label">Indexed:</span>
@@ -590,6 +595,8 @@ export const SettingsPage: React.FC = () => {
                         </div>
                         <div className="provider-list-meta">
                           {provider.endpoint} - {provider.modelName}
+                          {provider.maxContextTokens &&
+                            ` - ${provider.maxContextTokens} tokens`}
                         </div>
                       </div>
                       <div className="provider-list-actions">
@@ -633,17 +640,13 @@ export const SettingsPage: React.FC = () => {
               + Add Embedding Provider
             </button>
           </div>
-        </div>
+        </Accordion>
 
         {aiSettings && (
-          <div className="settings-section">
-            <h2 className="settings-section-title">AI Provider (Optional)</h2>
-            <p className="settings-section-description">
-              Configure AI provider for query enhancement and natural language
-              processing features. This is optional and separate from embedding
-              providers.
-            </p>
-
+          <Accordion
+            title="AI Provider (Optional)"
+            description="Configure AI provider for query enhancement and natural language processing features"
+          >
             <div className="settings-group">
               <div className="setting-item">
                 <div className="setting-header">
@@ -743,7 +746,7 @@ export const SettingsPage: React.FC = () => {
                 </>
               )}
             </div>
-          </div>
+          </Accordion>
         )}
       </div>
 
