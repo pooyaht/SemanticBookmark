@@ -44,6 +44,10 @@ export const BookmarksPage: React.FC = () => {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
+  const [staleMissingCounts, setStaleMissingCounts] = useState<{
+    stale: number;
+    missing: number;
+  }>({ stale: 0, missing: 0 });
 
   const [bookmarkStatuses, setBookmarkStatuses] = useState<
     Map<string, BookmarkStatus>
@@ -73,6 +77,8 @@ export const BookmarksPage: React.FC = () => {
   const loadIndexedCount = async () => {
     const count = await indexingService.getTotalIndexedCount();
     setTotalIndexedCount(count);
+    const counts = await indexingService.getStaleAndMissingCounts();
+    setStaleMissingCounts(counts);
   };
 
   const loadBookmarks = async () => {
@@ -182,6 +188,69 @@ export const BookmarksPage: React.FC = () => {
 
   const handleCancelIndexing = () => {
     indexingService.cancelIndexing();
+  };
+
+  const handleIndexMissingStale = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    if (!activeProvider) {
+      alert('No active embedding provider. Please configure one in settings.');
+      return;
+    }
+
+    const totalNeeded = staleMissingCounts.stale + staleMissingCounts.missing;
+    if (totalNeeded === 0) {
+      alert('All bookmarks are up to date!');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will generate embeddings for ${totalNeeded} bookmarks (${staleMissingCounts.missing} missing, ${staleMissingCounts.stale} stale). Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsIndexing(true);
+    setIndexingProgress({
+      current: 0,
+      total: totalNeeded,
+      succeeded: 0,
+      failed: 0,
+    });
+
+    try {
+      await indexingService.indexMissingAndStale((progress) => {
+        setIndexingProgress({
+          current: progress.current,
+          total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
+        });
+      });
+
+      const wasCancelled = indexingService.isCancelled();
+      const finalProgress = indexingProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Indexing cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Indexing complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Indexing failed: ${errorMessage}`);
+    } finally {
+      setIsIndexing(false);
+      setIndexingProgress(null);
+    }
   };
 
   const handleBookmarkClick = (bookmark: Bookmark) => {
@@ -334,15 +403,29 @@ export const BookmarksPage: React.FC = () => {
               Cancel
             </button>
           ) : (
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() => {
-                void handleIndexAll();
-              }}
-              disabled={isSyncing}
-            >
-              Index All
-            </button>
+            <>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleIndexMissingStale();
+                }}
+                disabled={
+                  isSyncing ||
+                  staleMissingCounts.stale + staleMissingCounts.missing === 0
+                }
+              >
+                Index Missing/Stale
+              </button>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleIndexAll();
+                }}
+                disabled={isSyncing}
+              >
+                Reindex All
+              </button>
+            </>
           )}
           <button
             className="btn btn-primary btn-small"
@@ -398,6 +481,12 @@ export const BookmarksPage: React.FC = () => {
           }}
         >
           Total indexed: {totalIndexedCount} / {bookmarks.length} bookmarks
+          {(staleMissingCounts.stale > 0 || staleMissingCounts.missing > 0) && (
+            <span style={{ marginLeft: '12px', color: '#ff9800' }}>
+              ({staleMissingCounts.missing} missing, {staleMissingCounts.stale}{' '}
+              stale)
+            </span>
+          )}
         </div>
       )}
 

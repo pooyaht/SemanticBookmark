@@ -22,6 +22,7 @@ export interface Embedding {
   embedding: Float32Array;
   createdAt: Date;
   modelName: string;
+  bookmarkVersion: number;
   isTruncated?: boolean;
   tokenCount?: number;
 }

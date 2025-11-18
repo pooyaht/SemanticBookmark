@@ -45,6 +45,18 @@ export class SemanticBookmarkDatabase extends Dexie {
       embeddingProviders: 'id, type, createdAt',
       embeddings: '[bookmarkId+providerId], bookmarkId, providerId, createdAt',
     });
+
+    this.version(5).stores({
+      tags: 'id, name, source, usageCount',
+      bookmarkTags: '[bookmarkId+tagId], bookmarkId, tagId, assignedBy',
+      bookmarks: 'id, url, title, version, dateAdded, lastModified',
+      content:
+        '[bookmarkId+url], bookmarkId, url, type, contentHash, fetchedAt',
+      relatedPages: 'id, bookmarkId, url, depth, discoveredAt',
+      embeddingProviders: 'id, type, createdAt',
+      embeddings:
+        '[bookmarkId+providerId], bookmarkId, providerId, bookmarkVersion, createdAt',
+    });
   }
 }
 

@@ -86,6 +86,7 @@ export class IndexingService {
         providerId: provider.id,
         embedding: embeddingArray,
         modelName: provider.modelName,
+        bookmarkVersion: bookmark.version,
         createdAt: new Date(),
         isTruncated,
         tokenCount,
@@ -223,6 +224,110 @@ export class IndexingService {
 
     const uniqueBookmarkIds = new Set(embeddings.map((e) => e.bookmarkId));
     return uniqueBookmarkIds.size;
+  }
+
+  async getStaleAndMissingCounts(): Promise<{
+    stale: number;
+    missing: number;
+  }> {
+    const provider = await this.providerService.getActiveProvider();
+    if (!provider) {
+      return { stale: 0, missing: 0 };
+    }
+
+    const allBookmarks = await db.bookmarks.toArray();
+    const embeddings = await db.embeddings
+      .where('providerId')
+      .equals(provider.id)
+      .toArray();
+
+    const embeddingMap = new Map(
+      embeddings.map((e) => [e.bookmarkId, e.bookmarkVersion])
+    );
+
+    let stale = 0;
+    let missing = 0;
+
+    for (const bookmark of allBookmarks) {
+      const embeddingVersion = embeddingMap.get(bookmark.id);
+      if (embeddingVersion === undefined) {
+        missing++;
+      } else if (embeddingVersion < bookmark.version) {
+        stale++;
+      }
+    }
+
+    return { stale, missing };
+  }
+
+  async getBookmarksNeedingIndexing(): Promise<Bookmark[]> {
+    const provider = await this.providerService.getActiveProvider();
+    if (!provider) {
+      return [];
+    }
+
+    const allBookmarks = await db.bookmarks.toArray();
+    const embeddings = await db.embeddings
+      .where('providerId')
+      .equals(provider.id)
+      .toArray();
+
+    const embeddingMap = new Map(
+      embeddings.map((e) => [e.bookmarkId, e.bookmarkVersion])
+    );
+
+    const needsIndexing: Bookmark[] = [];
+
+    for (const bookmark of allBookmarks) {
+      const embeddingVersion = embeddingMap.get(bookmark.id);
+      if (
+        embeddingVersion === undefined ||
+        embeddingVersion < bookmark.version
+      ) {
+        needsIndexing.push(bookmark);
+      }
+    }
+
+    return needsIndexing;
+  }
+
+  async indexMissingAndStale(
+    onProgress?: (progress: IndexingProgress) => void
+  ): Promise<IndexingResult[]> {
+    this.cancelRequested = false;
+    const bookmarksToIndex = await this.getBookmarksNeedingIndexing();
+    const results: IndexingResult[] = [];
+
+    const progress: IndexingProgress = {
+      total: bookmarksToIndex.length,
+      current: 0,
+      succeeded: 0,
+      failed: 0,
+    };
+
+    for (const bookmark of bookmarksToIndex) {
+      if (this.cancelRequested) {
+        break;
+      }
+
+      const result = await this.indexBookmark(bookmark.id);
+      results.push(result);
+
+      progress.current++;
+      if (result.success) {
+        progress.succeeded++;
+      } else {
+        progress.failed++;
+      }
+
+      if (onProgress) {
+        onProgress(progress);
+      }
+
+      await this.delay(200);
+    }
+
+    return results;
   }
 
   private delay(ms: number): Promise<void> {
