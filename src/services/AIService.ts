@@ -24,6 +24,7 @@ Generate a retrieval-optimized summary:`;
 export class AIService {
   private static instance: AIService;
   private settingsService: SettingsService;
+  private cancelRequested: boolean = false;
 
   private constructor() {
     this.settingsService = SettingsService.getInstance();
@@ -73,8 +74,14 @@ export class AIService {
       prompt
     );
 
+    const bookmark = await db.bookmarks.get(bookmarkId);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${bookmarkId}" not found`);
+    }
+
     await db.bookmarks.update(bookmarkId, {
       aiSummary: summary,
+      version: bookmark.version + 1,
       lastModified: new Date(),
     });
 
@@ -162,5 +169,102 @@ export class AIService {
   async isAIEnabled(): Promise<boolean> {
     const aiSettings = await this.settingsService.getAIProviderSettings();
     return aiSettings.enabled && aiSettings.isConnected;
+  }
+
+  async getUnsummarizedBookmarksCount(): Promise<number> {
+    const aiSettings = await this.settingsService.getAIProviderSettings();
+    if (!aiSettings.enabled || !aiSettings.isConnected) {
+      return 0;
+    }
+
+    const allBookmarks = await db.bookmarks.toArray();
+    const crawledBookmarkIds = new Set(
+      (await db.content.where('type').equals('primary').toArray())
+        .filter((c) => !c.fetchError)
+        .map((c) => c.bookmarkId)
+    );
+
+    const unsummarizedBookmarks = allBookmarks.filter(
+      (b) => crawledBookmarkIds.has(b.id) && !b.aiSummary
+    );
+
+    return unsummarizedBookmarks.length;
+  }
+
+  async summarizeAllBookmarks(
+    onProgress?: (progress: {
+      total: number;
+      current: number;
+      succeeded: number;
+      failed: number;
+    }) => void
+  ): Promise<{ success: boolean; bookmarkId: string; error?: string }[]> {
+    this.cancelRequested = false;
+    const aiSettings = await this.settingsService.getAIProviderSettings();
+    if (!aiSettings.enabled || !aiSettings.isConnected) {
+      throw new Error('AI provider is not enabled or connected');
+    }
+
+    const allBookmarks = await db.bookmarks.toArray();
+    const crawledBookmarkIds = new Set(
+      (await db.content.where('type').equals('primary').toArray())
+        .filter((c) => !c.fetchError)
+        .map((c) => c.bookmarkId)
+    );
+
+    const unsummarizedBookmarks = allBookmarks.filter(
+      (b) => crawledBookmarkIds.has(b.id) && !b.aiSummary
+    );
+
+    const results: { success: boolean; bookmarkId: string; error?: string }[] =
+      [];
+    const progress = {
+      total: unsummarizedBookmarks.length,
+      current: 0,
+      succeeded: 0,
+      failed: 0,
+    };
+
+    for (const bookmark of unsummarizedBookmarks) {
+      if (this.cancelRequested) {
+        break;
+      }
+
+      try {
+        await this.generateSummary(bookmark.id);
+        results.push({ success: true, bookmarkId: bookmark.id });
+        progress.succeeded++;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        results.push({
+          success: false,
+          bookmarkId: bookmark.id,
+          error: errorMessage,
+        });
+        progress.failed++;
+      }
+
+      progress.current++;
+      if (onProgress) {
+        onProgress(progress);
+      }
+
+      await this.delay(500);
+    }
+
+    return results;
+  }
+
+  cancelSummarizing(): void {
+    this.cancelRequested = true;
+  }
+
+  isSummarizeCancelled(): boolean {
+    return this.cancelRequested;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

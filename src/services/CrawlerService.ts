@@ -13,6 +13,7 @@ const settingsService = SettingsService.getInstance();
 export class CrawlerService {
   private static instance: CrawlerService;
   private lastFetchTime = 0;
+  private cancelRequested: boolean = false;
 
   private constructor() {}
 
@@ -584,5 +585,92 @@ export class CrawlerService {
   async deleteBookmarkContent(bookmarkId: string): Promise<void> {
     await db.content.where('bookmarkId').equals(bookmarkId).delete();
     await db.relatedPages.where('bookmarkId').equals(bookmarkId).delete();
+  }
+
+  async getUncrawledBookmarksCount(): Promise<number> {
+    const allBookmarks = await db.bookmarks.toArray();
+    const crawledBookmarkIds = new Set(
+      (
+        await db.content.where('type').equals(ContentType.PRIMARY).toArray()
+      ).map((c) => c.bookmarkId)
+    );
+
+    return allBookmarks.filter((b) => !crawledBookmarkIds.has(b.id)).length;
+  }
+
+  async crawlAllBookmarks(
+    onProgress?: (progress: {
+      total: number;
+      current: number;
+      succeeded: number;
+      failed: number;
+    }) => void
+  ): Promise<{ success: boolean; bookmarkId: string; error?: string }[]> {
+    this.cancelRequested = false;
+    const allBookmarks = await db.bookmarks.toArray();
+    const crawledBookmarkIds = new Set(
+      (
+        await db.content.where('type').equals(ContentType.PRIMARY).toArray()
+      ).map((c) => c.bookmarkId)
+    );
+
+    const uncrawledBookmarks = allBookmarks.filter(
+      (b) => !crawledBookmarkIds.has(b.id)
+    );
+
+    const results: { success: boolean; bookmarkId: string; error?: string }[] =
+      [];
+    const progress = {
+      total: uncrawledBookmarks.length,
+      current: 0,
+      succeeded: 0,
+      failed: 0,
+    };
+
+    for (const bookmark of uncrawledBookmarks) {
+      if (this.cancelRequested) {
+        break;
+      }
+
+      try {
+        await this.crawlBookmark(
+          bookmark.id,
+          bookmark.url,
+          bookmark.crawlDepth
+        );
+        results.push({ success: true, bookmarkId: bookmark.id });
+        progress.succeeded++;
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        results.push({
+          success: false,
+          bookmarkId: bookmark.id,
+          error: errorMessage,
+        });
+        progress.failed++;
+      }
+
+      progress.current++;
+      if (onProgress) {
+        onProgress(progress);
+      }
+
+      await this.delay(500);
+    }
+
+    return results;
+  }
+
+  cancelCrawling(): void {
+    this.cancelRequested = true;
+  }
+
+  isCrawlCancelled(): boolean {
+    return this.cancelRequested;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

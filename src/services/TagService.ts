@@ -223,19 +223,33 @@ export class TagService {
       return;
     }
 
-    await db.transaction('rw', [db.tags, db.bookmarkTags], async () => {
-      const bookmarkTag: BookmarkTag = {
-        bookmarkId,
-        tagId,
-        assignedBy,
-        assignedAt: new Date(),
-      };
+    await db.transaction(
+      'rw',
+      [db.tags, db.bookmarkTags, db.bookmarks],
+      async () => {
+        const bookmarkTag: BookmarkTag = {
+          bookmarkId,
+          tagId,
+          assignedBy,
+          assignedAt: new Date(),
+        };
 
-      await db.bookmarkTags.add(bookmarkTag);
-      await db.tags.update(tagId, {
-        usageCount: tag.usageCount + 1,
-      });
-    });
+        await db.bookmarkTags.add(bookmarkTag);
+        await db.tags.update(tagId, {
+          usageCount: tag.usageCount + 1,
+        });
+
+        if (assignedBy === TagAssignmentSource.USER) {
+          const bookmark = await db.bookmarks.get(bookmarkId);
+          if (bookmark) {
+            await db.bookmarks.update(bookmarkId, {
+              version: bookmark.version + 1,
+              lastModified: new Date(),
+            });
+          }
+        }
+      }
+    );
   }
 
   async removeTagFromBookmark(
@@ -253,12 +267,24 @@ export class TagService {
       return;
     }
 
-    await db.transaction('rw', [db.tags, db.bookmarkTags], async () => {
-      await db.bookmarkTags.delete([bookmarkId, tagId]);
-      await db.tags.update(tagId, {
-        usageCount: Math.max(0, tag.usageCount - 1),
-      });
-    });
+    await db.transaction(
+      'rw',
+      [db.tags, db.bookmarkTags, db.bookmarks],
+      async () => {
+        await db.bookmarkTags.delete([bookmarkId, tagId]);
+        await db.tags.update(tagId, {
+          usageCount: Math.max(0, tag.usageCount - 1),
+        });
+
+        const bookmark = await db.bookmarks.get(bookmarkId);
+        if (bookmark) {
+          await db.bookmarks.update(bookmarkId, {
+            version: bookmark.version + 1,
+            lastModified: new Date(),
+          });
+        }
+      }
+    );
   }
 
   async getBookmarkTags(bookmarkId: string): Promise<Tag[]> {

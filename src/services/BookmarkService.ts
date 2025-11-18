@@ -75,6 +75,7 @@ export class BookmarkService {
 
     await db.bookmarks.update(id, {
       title,
+      version: bookmark.version + 1,
       lastModified: new Date(),
     });
   }

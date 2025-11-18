@@ -10,8 +10,10 @@ import type { BookmarkStatus } from '@/services/BookmarkStatusService';
 import type { Bookmark } from '@/types/bookmark';
 import type { Tag } from '@/types/tag';
 
+import { AIService } from '@/services/AIService';
 import { BookmarkService } from '@/services/BookmarkService';
 import { BookmarkStatusService } from '@/services/BookmarkStatusService';
+import { CrawlerService } from '@/services/CrawlerService';
 import { EmbeddingProviderService } from '@/services/EmbeddingProviderService';
 import { IndexingService } from '@/services/IndexingService';
 import { TagService } from '@/services/TagService';
@@ -21,6 +23,8 @@ const tagService = TagService.getInstance();
 const indexingService = IndexingService.getInstance();
 const providerService = EmbeddingProviderService.getInstance();
 const statusService = BookmarkStatusService.getInstance();
+const crawlerService = CrawlerService.getInstance();
+const aiService = AIService.getInstance();
 
 type VisibilityFilter = 'all' | 'visible' | 'hidden';
 
@@ -39,8 +43,33 @@ export const BookmarksPage: React.FC = () => {
   const [indexingProgress, setIndexingProgress] = useState<{
     current: number;
     total: number;
+    succeeded: number;
+    failed: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
+  const [staleMissingCounts, setStaleMissingCounts] = useState<{
+    stale: number;
+    missing: number;
+  }>({ stale: 0, missing: 0 });
+  const [hasActiveProvider, setHasActiveProvider] = useState<boolean>(false);
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlProgress, setCrawlProgress] = useState<{
+    current: number;
+    total: number;
+    succeeded: number;
+    failed: number;
+  } | null>(null);
+  const [uncrawledCount, setUncrawledCount] = useState<number>(0);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summarizeProgress, setSummarizeProgress] = useState<{
+    current: number;
+    total: number;
+    succeeded: number;
+    failed: number;
+  } | null>(null);
+  const [unsummarizedCount, setUnsummarizedCount] = useState<number>(0);
+  const [hasAIProvider, setHasAIProvider] = useState<boolean>(false);
 
   const [bookmarkStatuses, setBookmarkStatuses] = useState<
     Map<string, BookmarkStatus>
@@ -64,7 +93,27 @@ export const BookmarksPage: React.FC = () => {
   useEffect(() => {
     void loadBookmarks();
     void loadTags();
+    void loadIndexedCount();
   }, []);
+
+  const loadIndexedCount = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    setHasActiveProvider(!!activeProvider);
+    const count = await indexingService.getTotalIndexedCount();
+    setTotalIndexedCount(count);
+    const counts = await indexingService.getStaleAndMissingCounts();
+    setStaleMissingCounts(counts);
+    const uncrawled = await crawlerService.getUncrawledBookmarksCount();
+    setUncrawledCount(uncrawled);
+    const aiEnabled = await aiService.isAIEnabled();
+    setHasAIProvider(aiEnabled);
+    if (aiEnabled) {
+      const unsummarized = await aiService.getUnsummarizedBookmarksCount();
+      setUnsummarizedCount(unsummarized);
+    } else {
+      setUnsummarizedCount(0);
+    }
+  };
 
   const loadBookmarks = async () => {
     setIsLoading(true);
@@ -105,6 +154,7 @@ export const BookmarksPage: React.FC = () => {
       );
       await loadBookmarks();
       await loadTags();
+      await loadIndexedCount();
     } catch {
       setSyncMessage('Sync failed. Please try again.');
     } finally {
@@ -129,19 +179,231 @@ export const BookmarksPage: React.FC = () => {
     }
 
     setIsIndexing(true);
-    setIndexingProgress({ current: 0, total: bookmarks.length });
+    setIndexingProgress({
+      current: 0,
+      total: bookmarks.length,
+      succeeded: 0,
+      failed: 0,
+    });
 
     try {
       await indexingService.indexAllBookmarks((progress) => {
         setIndexingProgress({
           current: progress.current,
           total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
         });
       });
 
+      const wasCancelled = indexingService.isCancelled();
+      const finalProgress = indexingProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Indexing cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Indexing complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Indexing failed: ${errorMessage}`);
+    } finally {
+      setIsIndexing(false);
+      setIndexingProgress(null);
+    }
+  };
+
+  const handleCancelIndexing = () => {
+    indexingService.cancelIndexing();
+  };
+
+  const handleCrawlAll = async () => {
+    if (uncrawledCount === 0) {
+      alert('All bookmarks are already crawled!');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will crawl ${uncrawledCount} bookmarks. This may take a while. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsCrawling(true);
+    setCrawlProgress({
+      current: 0,
+      total: uncrawledCount,
+      succeeded: 0,
+      failed: 0,
+    });
+
+    try {
+      await crawlerService.crawlAllBookmarks((progress) => {
+        setCrawlProgress({
+          current: progress.current,
+          total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
+        });
+      });
+
+      const wasCancelled = crawlerService.isCrawlCancelled();
+      const finalProgress = crawlProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Crawling cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Crawling complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Crawling failed: ${errorMessage}`);
+    } finally {
+      setIsCrawling(false);
+      setCrawlProgress(null);
+    }
+  };
+
+  const handleCancelCrawling = () => {
+    crawlerService.cancelCrawling();
+  };
+
+  const handleSummarizeAll = async () => {
+    if (!hasAIProvider) {
       alert(
-        `Indexing complete!\nSucceeded: ${indexingProgress?.current ?? 0} / ${indexingProgress?.total ?? 0}`
+        'AI provider is not enabled or connected. Please configure one in settings.'
       );
+      return;
+    }
+
+    if (unsummarizedCount === 0) {
+      alert('All crawled bookmarks already have AI summaries!');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will generate AI summaries for ${unsummarizedCount} bookmarks. This may take a while. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsSummarizing(true);
+    setSummarizeProgress({
+      current: 0,
+      total: unsummarizedCount,
+      succeeded: 0,
+      failed: 0,
+    });
+
+    try {
+      await aiService.summarizeAllBookmarks((progress) => {
+        setSummarizeProgress({
+          current: progress.current,
+          total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
+        });
+      });
+
+      const wasCancelled = aiService.isSummarizeCancelled();
+      const finalProgress = summarizeProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Summarizing cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Summarizing complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      alert(`Summarizing failed: ${errorMessage}`);
+    } finally {
+      setIsSummarizing(false);
+      setSummarizeProgress(null);
+    }
+  };
+
+  const handleCancelSummarizing = () => {
+    aiService.cancelSummarizing();
+  };
+
+  const handleIndexMissingStale = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    if (!activeProvider) {
+      alert('No active embedding provider. Please configure one in settings.');
+      return;
+    }
+
+    const totalNeeded = staleMissingCounts.stale + staleMissingCounts.missing;
+    if (totalNeeded === 0) {
+      alert('All bookmarks are up to date!');
+      return;
+    }
+
+    if (
+      !confirm(
+        `This will generate embeddings for ${totalNeeded} bookmarks (${staleMissingCounts.missing} missing, ${staleMissingCounts.stale} stale). Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setIsIndexing(true);
+    setIndexingProgress({
+      current: 0,
+      total: totalNeeded,
+      succeeded: 0,
+      failed: 0,
+    });
+
+    try {
+      await indexingService.indexMissingAndStale((progress) => {
+        setIndexingProgress({
+          current: progress.current,
+          total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
+        });
+      });
+
+      const wasCancelled = indexingService.isCancelled();
+      const finalProgress = indexingProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Indexing cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Indexing complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -162,6 +424,7 @@ export const BookmarksPage: React.FC = () => {
 
   const handleSaveBookmark = async () => {
     await loadBookmarks();
+    await loadIndexedCount();
     setSelectedBookmark(null);
   };
 
@@ -263,13 +526,25 @@ export const BookmarksPage: React.FC = () => {
   const getActiveFilterCount = () => {
     let count = 0;
 
-    if (visibilityFilter !== 'visible') {count++;}
+    if (visibilityFilter !== 'visible') {
+      count++;
+    }
     count += selectedTagIds.size;
-    if (statusFilters.crawled !== 'all') {count++;}
-    if (statusFilters.indexed !== 'all') {count++;}
-    if (statusFilters.aiSummary !== 'all') {count++;}
-    if (statusFilters.userDescription !== 'all') {count++;}
-    if (statusFilters.stale !== 'all') {count++;}
+    if (statusFilters.crawled !== 'all') {
+      count++;
+    }
+    if (statusFilters.indexed !== 'all') {
+      count++;
+    }
+    if (statusFilters.aiSummary !== 'all') {
+      count++;
+    }
+    if (statusFilters.userDescription !== 'all') {
+      count++;
+    }
+    if (statusFilters.stale !== 'all') {
+      count++;
+    }
 
     return count;
   };
@@ -280,20 +555,74 @@ export const BookmarksPage: React.FC = () => {
     <Layout currentPage="bookmarks">
       <div className="header">
         <h1>Bookmarks</h1>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={() => {
-              void handleIndexAll();
-            }}
-            disabled={isIndexing || isSyncing}
-          >
-            {isIndexing ? 'Indexing...' : 'Index All'}
-          </button>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {isIndexing || isCrawling || isSummarizing ? (
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => {
+                if (isIndexing) {
+                  handleCancelIndexing();
+                }
+                if (isCrawling) {
+                  handleCancelCrawling();
+                }
+                if (isSummarizing) {
+                  handleCancelSummarizing();
+                }
+              }}
+            >
+              Cancel
+            </button>
+          ) : (
+            <>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleCrawlAll();
+                }}
+                disabled={isSyncing || uncrawledCount === 0}
+              >
+                Crawl All
+              </button>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleSummarizeAll();
+                }}
+                disabled={
+                  isSyncing || !hasAIProvider || unsummarizedCount === 0
+                }
+              >
+                Summarize All
+              </button>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleIndexMissingStale();
+                }}
+                disabled={
+                  !hasActiveProvider ||
+                  isSyncing ||
+                  staleMissingCounts.stale + staleMissingCounts.missing === 0
+                }
+              >
+                Index Missing/Stale
+              </button>
+              <button
+                className="btn btn-secondary btn-small"
+                onClick={() => {
+                  void handleIndexAll();
+                }}
+                disabled={!hasActiveProvider || isSyncing}
+              >
+                Reindex All
+              </button>
+            </>
+          )}
           <button
             className="btn btn-primary btn-small"
             onClick={() => void handleSync()}
-            disabled={isSyncing || isIndexing}
+            disabled={isSyncing || isIndexing || isCrawling || isSummarizing}
           >
             {isSyncing ? 'Syncing...' : 'Sync'}
           </button>
@@ -315,6 +644,39 @@ export const BookmarksPage: React.FC = () => {
         </div>
       )}
 
+      {crawlProgress && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#e3f2fd',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#1565c0',
+          }}
+        >
+          Crawling: {crawlProgress.current} / {crawlProgress.total} bookmarks
+          (Succeeded: {crawlProgress.succeeded}, Failed: {crawlProgress.failed})
+        </div>
+      )}
+
+      {summarizeProgress && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#e3f2fd',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#1565c0',
+          }}
+        >
+          Summarizing: {summarizeProgress.current} / {summarizeProgress.total}{' '}
+          bookmarks (Succeeded: {summarizeProgress.succeeded}, Failed:{' '}
+          {summarizeProgress.failed})
+        </div>
+      )}
+
       {indexingProgress && (
         <div
           style={{
@@ -327,7 +689,52 @@ export const BookmarksPage: React.FC = () => {
           }}
         >
           Indexing: {indexingProgress.current} / {indexingProgress.total}{' '}
-          bookmarks
+          bookmarks (Succeeded: {indexingProgress.succeeded}, Failed:{' '}
+          {indexingProgress.failed})
+        </div>
+      )}
+
+      {!isLoading && !isIndexing && !isCrawling && !isSummarizing && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#f5f5f5',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#666',
+          }}
+        >
+          <div>
+            Crawled: {bookmarks.length - uncrawledCount} / {bookmarks.length}{' '}
+            {uncrawledCount > 0 && (
+              <span style={{ color: '#ff9800' }}>
+                ({uncrawledCount} uncrawled)
+              </span>
+            )}
+          </div>
+          {hasAIProvider && (
+            <div style={{ marginTop: '4px' }}>
+              Summarized:{' '}
+              {bookmarks.length - uncrawledCount - unsummarizedCount} /{' '}
+              {bookmarks.length - uncrawledCount}{' '}
+              {unsummarizedCount > 0 && (
+                <span style={{ color: '#ff9800' }}>
+                  ({unsummarizedCount} unsummarized)
+                </span>
+              )}
+            </div>
+          )}
+          <div style={{ marginTop: '4px' }}>
+            Indexed: {totalIndexedCount} / {bookmarks.length}{' '}
+            {(staleMissingCounts.stale > 0 ||
+              staleMissingCounts.missing > 0) && (
+              <span style={{ color: '#ff9800' }}>
+                ({staleMissingCounts.missing} missing,{' '}
+                {staleMissingCounts.stale} stale)
+              </span>
+            )}
+          </div>
         </div>
       )}
 
