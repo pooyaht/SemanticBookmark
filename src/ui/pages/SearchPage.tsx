@@ -1,4 +1,10 @@
-import { Globe, ChevronDown, ChevronUp, ExternalLink, Settings } from 'lucide-react';
+import {
+  Globe,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Settings,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 import { Layout } from '../components/Layout';
@@ -32,11 +38,19 @@ export const SearchPage: React.FC = () => {
 
   useEffect(() => {
     const loadSettings = async () => {
-      const stored = await chrome.storage.local.get(Object.values(STORAGE_KEYS));
+      const stored = await chrome.storage.local.get(
+        Object.values(STORAGE_KEYS)
+      );
       setTopK((stored[STORAGE_KEYS.TOP_K] as number | undefined) ?? 20);
-      setMinScore((stored[STORAGE_KEYS.MIN_SCORE] as number | undefined) ?? 0.3);
-      setQueryPrefix((stored[STORAGE_KEYS.QUERY_PREFIX] as string | undefined) ?? '');
-      setQuerySuffix((stored[STORAGE_KEYS.QUERY_SUFFIX] as string | undefined) ?? '');
+      setMinScore(
+        (stored[STORAGE_KEYS.MIN_SCORE] as number | undefined) ?? 0.3
+      );
+      setQueryPrefix(
+        (stored[STORAGE_KEYS.QUERY_PREFIX] as string | undefined) ?? ''
+      );
+      setQuerySuffix(
+        (stored[STORAGE_KEYS.QUERY_SUFFIX] as string | undefined) ?? ''
+      );
     };
     void loadSettings();
   }, []);
@@ -127,13 +141,17 @@ export const SearchPage: React.FC = () => {
                   value={topK}
                   onChange={(e) => setTopK(Number(e.target.value))}
                 />
-                <div className="config-hint">Maximum number of results to return</div>
+                <div className="config-hint">
+                  Maximum number of results to return
+                </div>
               </div>
 
               <div className="config-group">
                 <label className="config-label">
                   Similarity Threshold
-                  <span className="config-value">{(minScore * 100).toFixed(0)}%</span>
+                  <span className="config-value">
+                    {(minScore * 100).toFixed(0)}%
+                  </span>
                 </label>
                 <input
                   type="range"
@@ -172,7 +190,9 @@ export const SearchPage: React.FC = () => {
                   value={querySuffix}
                   onChange={(e) => setQuerySuffix(e.target.value)}
                 />
-                <div className="config-hint">Text added after your search query</div>
+                <div className="config-hint">
+                  Text added after your search query
+                </div>
               </div>
             </div>
             <div className="config-panel-footer">
@@ -182,7 +202,10 @@ export const SearchPage: React.FC = () => {
               >
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={() => void saveSettings()}>
+              <button
+                className="btn btn-primary"
+                onClick={() => void saveSettings()}
+              >
                 Save
               </button>
             </div>
@@ -239,10 +262,7 @@ export const SearchPage: React.FC = () => {
               {results.map((result) => {
                 const isExpanded = expandedId === result.bookmark.id;
                 return (
-                  <div
-                    key={result.bookmark.id}
-                    className="result-card-modern"
-                  >
+                  <div key={result.bookmark.id} className="result-card-modern">
                     <div
                       className="result-card-header"
                       onClick={() => toggleExpand(result.bookmark.id)}

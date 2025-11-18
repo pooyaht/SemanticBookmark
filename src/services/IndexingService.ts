@@ -29,6 +29,7 @@ export class IndexingService {
   private contentPrep: ContentPreparationService;
   private providerService: EmbeddingProviderService;
   private tagService: TagService;
+  private cancelRequested: boolean = false;
 
   private constructor() {
     this.contentPrep = ContentPreparationService.getInstance();
@@ -114,6 +115,7 @@ export class IndexingService {
   async indexAllBookmarks(
     onProgress?: (progress: IndexingProgress) => void
   ): Promise<IndexingResult[]> {
+    this.cancelRequested = false;
     const bookmarks = await db.bookmarks.toArray();
     const results: IndexingResult[] = [];
 
@@ -125,6 +127,10 @@ export class IndexingService {
     };
 
     for (const bookmark of bookmarks) {
+      if (this.cancelRequested) {
+        break;
+      }
+
       const result = await this.indexBookmark(bookmark.id);
       results.push(result);
 
@@ -143,6 +149,14 @@ export class IndexingService {
     }
 
     return results;
+  }
+
+  cancelIndexing(): void {
+    this.cancelRequested = true;
+  }
+
+  isCancelled(): boolean {
+    return this.cancelRequested;
   }
 
   async isBookmarkIndexed(
@@ -194,6 +208,21 @@ export class IndexingService {
 
   async deleteBookmarkEmbeddings(bookmarkId: string): Promise<void> {
     await db.embeddings.where('bookmarkId').equals(bookmarkId).delete();
+  }
+
+  async getTotalIndexedCount(): Promise<number> {
+    const provider = await this.providerService.getActiveProvider();
+    if (!provider) {
+      return 0;
+    }
+
+    const embeddings = await db.embeddings
+      .where('providerId')
+      .equals(provider.id)
+      .toArray();
+
+    const uniqueBookmarkIds = new Set(embeddings.map((e) => e.bookmarkId));
+    return uniqueBookmarkIds.size;
   }
 
   private delay(ms: number): Promise<void> {

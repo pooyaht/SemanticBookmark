@@ -38,7 +38,9 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   statusFilters,
   onStatusFilterChange,
 }) => {
-  if (!isOpen) {return null;}
+  if (!isOpen) {
+    return null;
+  }
 
   const handleClearAll = () => {
     onVisibilityChange('visible');
@@ -59,17 +61,16 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
   return (
     <div className="filter-modal-overlay" onClick={onClose}>
-      <div className="filter-modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="filter-modal-content"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="filter-modal-header">
           <div className="filter-modal-title">
             <CheckCircle size={20} />
             <span>Filters</span>
           </div>
-          <button
-            className="filter-close-btn"
-            onClick={onClose}
-            title="Close"
-          >
+          <button className="filter-close-btn" onClick={onClose} title="Close">
             <X size={20} />
           </button>
         </div>
@@ -230,7 +231,10 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   <button
                     className={`filter-status-btn ${statusFilters.aiSummary === 'no' ? 'active' : ''}`}
                     onClick={() =>
-                      onStatusFilterChange({ ...statusFilters, aiSummary: 'no' })
+                      onStatusFilterChange({
+                        ...statusFilters,
+                        aiSummary: 'no',
+                      })
                     }
                   >
                     No

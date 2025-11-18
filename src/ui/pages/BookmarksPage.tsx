@@ -39,8 +39,11 @@ export const BookmarksPage: React.FC = () => {
   const [indexingProgress, setIndexingProgress] = useState<{
     current: number;
     total: number;
+    succeeded: number;
+    failed: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [totalIndexedCount, setTotalIndexedCount] = useState<number>(0);
 
   const [bookmarkStatuses, setBookmarkStatuses] = useState<
     Map<string, BookmarkStatus>
@@ -64,7 +67,13 @@ export const BookmarksPage: React.FC = () => {
   useEffect(() => {
     void loadBookmarks();
     void loadTags();
+    void loadIndexedCount();
   }, []);
+
+  const loadIndexedCount = async () => {
+    const count = await indexingService.getTotalIndexedCount();
+    setTotalIndexedCount(count);
+  };
 
   const loadBookmarks = async () => {
     setIsLoading(true);
@@ -105,6 +114,7 @@ export const BookmarksPage: React.FC = () => {
       );
       await loadBookmarks();
       await loadTags();
+      await loadIndexedCount();
     } catch {
       setSyncMessage('Sync failed. Please try again.');
     } finally {
@@ -129,19 +139,37 @@ export const BookmarksPage: React.FC = () => {
     }
 
     setIsIndexing(true);
-    setIndexingProgress({ current: 0, total: bookmarks.length });
+    setIndexingProgress({
+      current: 0,
+      total: bookmarks.length,
+      succeeded: 0,
+      failed: 0,
+    });
 
     try {
       await indexingService.indexAllBookmarks((progress) => {
         setIndexingProgress({
           current: progress.current,
           total: progress.total,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
         });
       });
 
-      alert(
-        `Indexing complete!\nSucceeded: ${indexingProgress?.current ?? 0} / ${indexingProgress?.total ?? 0}`
-      );
+      const wasCancelled = indexingService.isCancelled();
+      const finalProgress = indexingProgress;
+
+      if (wasCancelled) {
+        alert(
+          `Indexing cancelled!\nCompleted: ${finalProgress?.current ?? 0} / ${finalProgress?.total ?? 0}\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      } else {
+        alert(
+          `Indexing complete!\nSucceeded: ${finalProgress?.succeeded ?? 0}\nFailed: ${finalProgress?.failed ?? 0}`
+        );
+      }
+
+      await loadIndexedCount();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
@@ -150,6 +178,10 @@ export const BookmarksPage: React.FC = () => {
       setIsIndexing(false);
       setIndexingProgress(null);
     }
+  };
+
+  const handleCancelIndexing = () => {
+    indexingService.cancelIndexing();
   };
 
   const handleBookmarkClick = (bookmark: Bookmark) => {
@@ -162,6 +194,7 @@ export const BookmarksPage: React.FC = () => {
 
   const handleSaveBookmark = async () => {
     await loadBookmarks();
+    await loadIndexedCount();
     setSelectedBookmark(null);
   };
 
@@ -263,13 +296,25 @@ export const BookmarksPage: React.FC = () => {
   const getActiveFilterCount = () => {
     let count = 0;
 
-    if (visibilityFilter !== 'visible') {count++;}
+    if (visibilityFilter !== 'visible') {
+      count++;
+    }
     count += selectedTagIds.size;
-    if (statusFilters.crawled !== 'all') {count++;}
-    if (statusFilters.indexed !== 'all') {count++;}
-    if (statusFilters.aiSummary !== 'all') {count++;}
-    if (statusFilters.userDescription !== 'all') {count++;}
-    if (statusFilters.stale !== 'all') {count++;}
+    if (statusFilters.crawled !== 'all') {
+      count++;
+    }
+    if (statusFilters.indexed !== 'all') {
+      count++;
+    }
+    if (statusFilters.aiSummary !== 'all') {
+      count++;
+    }
+    if (statusFilters.userDescription !== 'all') {
+      count++;
+    }
+    if (statusFilters.stale !== 'all') {
+      count++;
+    }
 
     return count;
   };
@@ -281,15 +326,24 @@ export const BookmarksPage: React.FC = () => {
       <div className="header">
         <h1>Bookmarks</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            className="btn btn-secondary btn-small"
-            onClick={() => {
-              void handleIndexAll();
-            }}
-            disabled={isIndexing || isSyncing}
-          >
-            {isIndexing ? 'Indexing...' : 'Index All'}
-          </button>
+          {isIndexing ? (
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={handleCancelIndexing}
+            >
+              Cancel
+            </button>
+          ) : (
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() => {
+                void handleIndexAll();
+              }}
+              disabled={isSyncing}
+            >
+              Index All
+            </button>
+          )}
           <button
             className="btn btn-primary btn-small"
             onClick={() => void handleSync()}
@@ -327,7 +381,23 @@ export const BookmarksPage: React.FC = () => {
           }}
         >
           Indexing: {indexingProgress.current} / {indexingProgress.total}{' '}
-          bookmarks
+          bookmarks (Succeeded: {indexingProgress.succeeded}, Failed:{' '}
+          {indexingProgress.failed})
+        </div>
+      )}
+
+      {!isLoading && !isIndexing && (
+        <div
+          style={{
+            padding: '8px 12px',
+            background: '#f5f5f5',
+            borderRadius: '4px',
+            fontSize: '12px',
+            marginBottom: '12px',
+            color: '#666',
+          }}
+        >
+          Total indexed: {totalIndexedCount} / {bookmarks.length} bookmarks
         </div>
       )}
 
