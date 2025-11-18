@@ -73,8 +73,14 @@ export class AIService {
       prompt
     );
 
+    const bookmark = await db.bookmarks.get(bookmarkId);
+    if (!bookmark) {
+      throw new Error(`Bookmark with id "${bookmarkId}" not found`);
+    }
+
     await db.bookmarks.update(bookmarkId, {
       aiSummary: summary,
+      version: bookmark.version + 1,
       lastModified: new Date(),
     });
 
