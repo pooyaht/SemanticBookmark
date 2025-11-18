@@ -48,6 +48,7 @@ export const BookmarksPage: React.FC = () => {
     stale: number;
     missing: number;
   }>({ stale: 0, missing: 0 });
+  const [hasActiveProvider, setHasActiveProvider] = useState<boolean>(false);
 
   const [bookmarkStatuses, setBookmarkStatuses] = useState<
     Map<string, BookmarkStatus>
@@ -75,6 +76,8 @@ export const BookmarksPage: React.FC = () => {
   }, []);
 
   const loadIndexedCount = async () => {
+    const activeProvider = await providerService.getActiveProvider();
+    setHasActiveProvider(!!activeProvider);
     const count = await indexingService.getTotalIndexedCount();
     setTotalIndexedCount(count);
     const counts = await indexingService.getStaleAndMissingCounts();
@@ -410,6 +413,7 @@ export const BookmarksPage: React.FC = () => {
                   void handleIndexMissingStale();
                 }}
                 disabled={
+                  !hasActiveProvider ||
                   isSyncing ||
                   staleMissingCounts.stale + staleMissingCounts.missing === 0
                 }
@@ -421,7 +425,7 @@ export const BookmarksPage: React.FC = () => {
                 onClick={() => {
                   void handleIndexAll();
                 }}
-                disabled={isSyncing}
+                disabled={!hasActiveProvider || isSyncing}
               >
                 Reindex All
               </button>
