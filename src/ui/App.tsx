@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import { BookmarksPage } from './pages/BookmarksPage';
+import { MonitoringPage } from './pages/MonitoringPage';
 import { SearchPage } from './pages/SearchPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TagsPage } from './pages/TagsPage';
@@ -14,6 +15,7 @@ export const App: React.FC = () => {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/tags" element={<TagsPage />} />
         <Route path="/bookmarks" element={<BookmarksPage />} />
+        <Route path="/monitoring" element={<MonitoringPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
     </HashRouter>

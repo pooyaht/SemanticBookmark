@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
-  currentPage: 'search' | 'tags' | 'bookmarks' | 'settings';
+  currentPage: 'search' | 'tags' | 'bookmarks' | 'monitoring' | 'settings';
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
@@ -66,6 +66,22 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage }) => {
             <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2zm0 15l-5-2.18L7 18V5h10v13z" />
           </svg>
           <span>Bookmarks</span>
+        </div>
+        <div
+          className={`footer-nav-item ${currentPage === 'monitoring' ? 'active' : ''}`}
+          onClick={() => handleNavigation('monitoring')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleNavigation('monitoring');
+            }
+          }}
+        >
+          <svg fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" />
+          </svg>
+          <span>Monitor</span>
         </div>
         <div
           className={`footer-nav-item ${currentPage === 'settings' ? 'active' : ''}`}
