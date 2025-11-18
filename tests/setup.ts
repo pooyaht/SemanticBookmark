@@ -54,6 +54,30 @@ if (typeof global.structuredClone === 'undefined') {
     if (obj instanceof Date) {
       return new Date(obj.getTime());
     }
+    if (obj instanceof Float32Array) {
+      return new Float32Array(obj);
+    }
+    if (obj instanceof Float64Array) {
+      return new Float64Array(obj);
+    }
+    if (obj instanceof Int8Array) {
+      return new Int8Array(obj);
+    }
+    if (obj instanceof Int16Array) {
+      return new Int16Array(obj);
+    }
+    if (obj instanceof Int32Array) {
+      return new Int32Array(obj);
+    }
+    if (obj instanceof Uint8Array) {
+      return new Uint8Array(obj);
+    }
+    if (obj instanceof Uint16Array) {
+      return new Uint16Array(obj);
+    }
+    if (obj instanceof Uint32Array) {
+      return new Uint32Array(obj);
+    }
     if (Array.isArray(obj)) {
       return obj.map((item) => global.structuredClone(item));
     }

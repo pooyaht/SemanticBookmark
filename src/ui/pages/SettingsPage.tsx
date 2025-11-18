@@ -4,6 +4,7 @@ import { Accordion } from '../components/Accordion';
 import { Layout } from '../components/Layout';
 import { ProviderFormModal } from '../components/ProviderFormModal';
 
+import type { ImportProgress } from '@/services/ImportExportService';
 import type {
   EmbeddingProvider,
   AIProviderSettings,
@@ -12,6 +13,7 @@ import type {
 import type { CrawlerSettings } from '@/types/settings';
 
 import { EmbeddingProviderService } from '@/services/EmbeddingProviderService';
+import { importExportService } from '@/services/ImportExportService';
 import { SettingsService } from '@/services/SettingsService';
 
 const settingsService = SettingsService.getInstance();
@@ -37,6 +39,12 @@ export const SettingsPage: React.FC = () => {
   const [aiSettings, setAiSettings] = useState<AIProviderSettings | null>(null);
   const [aiTestingConnection, setAiTestingConnection] = useState(false);
   const [hasAiChanges, setHasAiChanges] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(
+    null
+  );
 
   useEffect(() => {
     void loadSettings();
@@ -256,6 +264,98 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    if (exporting) {
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await importExportService.exportToFile();
+      alert('Export completed successfully!');
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? `Export failed: ${error.message}`
+          : 'Export failed'
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImport = () => {
+    if (importing) {
+      return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const clearExisting = confirm(
+        'Do you want to clear all existing data before importing?\n\n' +
+          'Click OK to replace all data, or Cancel to merge with existing data.'
+      );
+
+      setImporting(true);
+      setImportProgress({ stage: 'Starting import', current: 0, total: 1 });
+
+      try {
+        const result = await importExportService.importFromFile(file, {
+          clearExisting,
+          onProgress: (progress) => {
+            setImportProgress(progress);
+          },
+        });
+
+        if (result.success) {
+          alert(
+            `Import completed successfully!\n\n` +
+              `Bookmarks: ${result.imported.bookmarks}\n` +
+              `Embeddings: ${result.imported.embeddings}\n` +
+              `Content: ${result.imported.content}\n` +
+              `Providers: ${result.imported.providers}\n` +
+              `Tags: ${result.imported.tags}`
+          );
+          await loadSettings();
+          await loadProviders();
+          await loadAISettings();
+        } else {
+          alert(
+            `Import completed with errors:\n\n` +
+              `Imported:\n` +
+              `- Bookmarks: ${result.imported.bookmarks}\n` +
+              `- Embeddings: ${result.imported.embeddings}\n` +
+              `- Content: ${result.imported.content}\n` +
+              `- Providers: ${result.imported.providers}\n` +
+              `- Tags: ${result.imported.tags}\n\n` +
+              `Errors (${result.errors.length}):\n${result.errors.slice(0, 5).join('\n')}${
+                result.errors.length > 5
+                  ? `\n... and ${result.errors.length - 5} more`
+                  : ''
+              }`
+          );
+        }
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? `Import failed: ${error.message}`
+            : 'Import failed'
+        );
+      } finally {
+        setImporting(false);
+        setImportProgress(null);
+      }
+    };
+    input.click();
+  };
+
   if (loading || !settings) {
     return (
       <Layout currentPage="settings">
@@ -277,9 +377,27 @@ export const SettingsPage: React.FC = () => {
           <button
             className="btn btn-secondary btn-small"
             onClick={() => {
+              void handleExport();
+            }}
+            disabled={exporting || importing || saving}
+          >
+            {exporting ? 'Exporting...' : 'Export All Data'}
+          </button>
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={handleImport}
+            disabled={exporting || importing || saving}
+            style={{ marginLeft: '8px' }}
+          >
+            {importing ? 'Importing...' : 'Import Data'}
+          </button>
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={() => {
               void handleReset();
             }}
-            disabled={saving}
+            disabled={saving || exporting || importing}
+            style={{ marginLeft: '8px' }}
           >
             Reset to Defaults
           </button>
@@ -290,7 +408,7 @@ export const SettingsPage: React.FC = () => {
                 void handleSave();
                 void handleSaveAISettings();
               }}
-              disabled={saving}
+              disabled={saving || exporting || importing}
               style={{ marginLeft: '8px' }}
             >
               {saving ? 'Saving...' : 'Save All Changes'}
@@ -298,6 +416,25 @@ export const SettingsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {importProgress && (
+        <div
+          style={{
+            padding: '12px',
+            marginBottom: '16px',
+            backgroundColor: '#e3f2fd',
+            borderRadius: '4px',
+            border: '1px solid #90caf9',
+          }}
+        >
+          <div style={{ fontWeight: 500, marginBottom: '4px' }}>
+            {importProgress.stage}
+          </div>
+          <div style={{ fontSize: '12px', color: '#666' }}>
+            {importProgress.current} / {importProgress.total}
+          </div>
+        </div>
+      )}
 
       <div className="settings-container">
         <Accordion
